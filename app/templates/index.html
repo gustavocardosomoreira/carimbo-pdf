@@ -2017,7 +2017,7 @@
                     x0 = coords.x0;
                     y0 = coords.y0;
                     s = coords.scale;
-                } else if (!appState.positionMode && appState.globalCoords.x0 !== null) {
+                } else if (appState.globalCoords.x0 !== null) {
                     x0 = appState.globalCoords.x0;
                     y0 = appState.globalCoords.y0;
                     s = appState.scale;

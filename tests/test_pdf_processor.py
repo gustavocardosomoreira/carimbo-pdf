@@ -221,3 +221,29 @@ def test_process_pdf_stamping_with_inactive_pages(sample_pdf):
         out_doc = fitz.open(output_path)
         assert len(out_doc) == 3
         out_doc.close()
+
+
+def test_process_pdf_stamping_mixed_coords(sample_pdf):
+    from app.core.pdf_processor import process_pdf_stamping
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        output_path = os.path.join(tmpdir, "output_mixed.pdf")
+
+        # Test passing both global coords and custom override for only page 0
+        pages_info, has_break, break_msg = process_pdf_stamping(
+            input_pdf_path=sample_pdf,
+            output_pdf_path=output_path,
+            process_number="9557/2026",
+            start_date="21/05/2026",
+            start_leaf=18,
+            volume_limit=200,
+            reserve_terms=True,
+            global_coords={"x0": 400.0, "y0": 30.0, "scale": 1.1},
+            custom_coords={"0": {"x0": 100.0, "y0": 100.0, "scale": 0.8}}
+        )
+
+        assert os.path.exists(output_path)
+        out_doc = fitz.open(output_path)
+        assert len(out_doc) == 3
+        out_doc.close()
