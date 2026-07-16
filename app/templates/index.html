@@ -796,6 +796,77 @@
             gap: 32px;
         }
 
+        /* Separador entre PDFs no modo de Grade Completa */
+        .grid-separator-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            min-height: 200px;
+            border: 2px dashed rgba(228, 84, 75, 0.4);
+            background-color: rgba(228, 84, 75, 0.05);
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+            box-sizing: border-box;
+            position: relative;
+            user-select: none;
+        }
+        /* No layout em lista, o separador pode ser mais fino e horizontal */
+        .grid-view.list-layout .grid-separator-card {
+            width: 100%;
+            max-width: var(--zoom-size);
+            min-height: 100px;
+            padding: 12px;
+        }
+        .grid-separator-card::before {
+            content: '';
+            position: absolute;
+            top: 15%;
+            bottom: 15%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 3px;
+            background: linear-gradient(to bottom, transparent, var(--primary), transparent);
+            border-radius: 9999px;
+        }
+        .grid-view.list-layout .grid-separator-card::before {
+            top: 50%;
+            left: 15%;
+            right: 15%;
+            bottom: auto;
+            transform: translateY(-50%);
+            width: auto;
+            height: 3px;
+            background: linear-gradient(to right, transparent, var(--primary), transparent);
+        }
+        .grid-separator-card .separator-label {
+            margin-bottom: auto;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--primary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            background-color: white;
+            padding: 2px 8px;
+            border-radius: 9999px;
+            box-shadow: var(--shadow-sm);
+            z-index: 1;
+        }
+        .grid-separator-card .separator-filename {
+            margin-top: auto;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            z-index: 1;
+        }
+
         /* Estados de Inatividade do Grid */
         .page-container.inactive .page-wrapper {
             opacity: 0.35;
@@ -1024,6 +1095,9 @@
                     <button class="btn-icon" id="btn-view-list" title="Lista de Páginas">
                         <svg viewBox="0 0 24 24"><path d="M7,5H21V7H7V5M7,11H21V13H7V11M7,17H21V19H7V17M3,5H5V7H3V5M3,11H5V13H3V11M3,17H5V19H3V17Z"/></svg>
                     </button>
+                    <button class="btn-icon" id="btn-view-all-grid" title="Grade Completa do Lote" style="display: none;">
+                        <svg viewBox="0 0 24 24"><path d="M2,4H22V20H2V4M4,6V9H9V6H4M4,11V14H9V11H4M4,16V19H9V16H4M11,6V9H16V6H11M11,11V14H16V11H11M11,16V19H16V16H11M18,6V9H21V6H18M18,11V14H21V11H18M18,16V19H21V16H18Z"/></svg>
+                    </button>
                 </div>
                 
                 <div class="history-controls">
@@ -1085,6 +1159,7 @@
         let appState = {
             queue: [],       // Array de arquivos: {fileId, filename, totalPages, pages: [], pagesInfo: [], intervalText: 'Todos', activePages: []}
             activeFileIdx: -1, // Índice do arquivo ativo visualizado na área central
+            viewMode: 'grid',  // Modo de visualização: grid, list, all-grid
             
             // Parâmetros globais do formulário
             processNumber: '9557/2026',
@@ -1133,6 +1208,7 @@
         const viewModeControls = document.getElementById('view-mode-controls');
         const btnViewGrid = document.getElementById('btn-view-grid');
         const btnViewList = document.getElementById('btn-view-list');
+        const btnViewAllGrid = document.getElementById('btn-view-all-grid');
         
         const btnSaveBatch = document.getElementById('btn-save-batch');
         const btnOpenBatch = document.getElementById('btn-open-batch');
@@ -1214,7 +1290,9 @@
             document.querySelectorAll('.page-wrapper').forEach(el => {
                 el.style.width = val + 'px';
                 const pageIdx = parseInt(el.getAttribute('data-page-idx'));
-                const file = appState.queue[appState.activeFileIdx];
+                const fileIdxAttr = el.getAttribute('data-file-idx');
+                const fileIdx = fileIdxAttr !== null ? parseInt(fileIdxAttr) : appState.activeFileIdx;
+                const file = appState.queue[fileIdx];
                 if (file && file.pages[pageIdx]) {
                     const ratio = val / file.pages[pageIdx].width;
                     el.style.height = (file.pages[pageIdx].height * ratio) + 'px';
@@ -1244,14 +1322,37 @@
         }, { passive: false });
 
         btnViewGrid.addEventListener('click', () => {
+            const wasAllGrid = appState.viewMode === 'all-grid';
+            appState.viewMode = 'grid';
             btnViewGrid.classList.add('active');
             btnViewList.classList.remove('active');
+            btnViewAllGrid.classList.remove('active');
             pagesGrid.classList.remove('list-layout');
+            if (wasAllGrid) {
+                renderGrid();
+            }
         });
         btnViewList.addEventListener('click', () => {
+            const wasAllGrid = appState.viewMode === 'all-grid';
+            appState.viewMode = 'list';
             btnViewList.classList.add('active');
             btnViewGrid.classList.remove('active');
+            btnViewAllGrid.classList.remove('active');
             pagesGrid.classList.add('list-layout');
+            if (wasAllGrid) {
+                renderGrid();
+            }
+        });
+        btnViewAllGrid.addEventListener('click', () => {
+            const wasNotAllGrid = appState.viewMode !== 'all-grid';
+            appState.viewMode = 'all-grid';
+            btnViewAllGrid.classList.add('active');
+            btnViewGrid.classList.remove('active');
+            btnViewList.classList.remove('active');
+            pagesGrid.classList.remove('list-layout');
+            if (wasNotAllGrid) {
+                renderGrid();
+            }
         });
 
         // Desfazer / Refazer
@@ -1409,9 +1510,16 @@
 
             if (appState.queue.length >= 2) {
                 sidebarTabs.style.display = 'flex';
+                btnViewAllGrid.style.display = 'inline-flex';
             } else {
                 sidebarTabs.style.display = 'none';
+                btnViewAllGrid.style.display = 'none';
                 switchSidebarTab('params');
+                if (appState.viewMode === 'all-grid') {
+                    appState.viewMode = 'grid';
+                    btnViewGrid.classList.add('active');
+                    btnViewAllGrid.classList.remove('active');
+                }
             }
 
             pdfQueueList.innerHTML = '';
@@ -1661,64 +1769,68 @@
 
         // Atualiza badges visuais no Grid
         function updateActiveDocumentBadges() {
-            if (appState.activeFileIdx === -1) return;
-            const file = appState.queue[appState.activeFileIdx];
+            if (appState.queue.length === 0) return;
 
-            file.pagesInfo.forEach(info => {
-                const badgeEl = document.getElementById(`badge-page-${info.page_idx}`);
-                const stampEl = document.getElementById(`stamp-page-${info.page_idx}`);
-                const containerEl = document.getElementById(`page-container-${info.page_idx}`);
-                const headerEl = containerEl ? containerEl.querySelector('.page-header-info') : null;
-                const termBadgeText = document.getElementById(`term-badge-text-${info.page_idx}`);
+            const filesToUpdate = (appState.viewMode === 'all-grid') 
+                ? appState.queue 
+                : [appState.queue[appState.activeFileIdx]].filter(Boolean);
 
-                if (containerEl) {
-                    containerEl.classList.remove('accent-start', 'accent-end', 'accent-term');
-                    if (!info.is_active) {
-                        containerEl.classList.add('inactive');
-                    } else {
-                        containerEl.classList.remove('inactive');
-                        // Check if it is a Termo (reserveTerms is active) or an affected boundary page (reserveTerms is inactive)
-                        let isAffected = false;
-                        if (appState.reserveTerms) {
-                            isAffected = info.is_term;
-                        } else if (info.leaf_number !== null) {
-                            isAffected = info.leaf_number > 1 && (info.leaf_number % appState.volumeLimit === 0 || info.leaf_number % appState.volumeLimit === 1);
-                        }
+            filesToUpdate.forEach(file => {
+                if (!file.pagesInfo) return;
+                file.pagesInfo.forEach(info => {
+                    const badgeEl = document.getElementById(`badge-page-${file.fileId}-${info.page_idx}`);
+                    const stampEl = document.getElementById(`stamp-page-${file.fileId}-${info.page_idx}`);
+                    const containerEl = document.getElementById(`page-container-${file.fileId}-${info.page_idx}`);
+                    const headerEl = containerEl ? containerEl.querySelector('.page-header-info') : null;
+                    const termBadgeText = document.getElementById(`term-badge-text-${file.fileId}-${info.page_idx}`);
 
-                        if (isAffected) {
-                            containerEl.classList.add('accent-term');
+                    if (containerEl) {
+                        containerEl.classList.remove('accent-start', 'accent-end', 'accent-term');
+                        if (!info.is_active) {
+                            containerEl.classList.add('inactive');
+                        } else {
+                            containerEl.classList.remove('inactive');
+                            // Check if it is a Termo (reserveTerms is active) or an affected boundary page (reserveTerms is inactive)
+                            let isAffected = false;
+                            if (appState.reserveTerms) {
+                                isAffected = info.is_term;
+                            } else if (info.leaf_number !== null) {
+                                isAffected = info.leaf_number > 1 && (info.leaf_number % appState.volumeLimit === 0 || info.leaf_number % appState.volumeLimit === 1);
+                            }
+
+                            if (isAffected) {
+                                containerEl.classList.add('accent-term');
+                            }
                         }
                     }
-                }
 
-                if (termBadgeText && info.is_term) {
-                    termBadgeText.textContent = `Pula Folha ${info.leaf_number}`;
-                }
-
-                // Hide the top text badge headers completely for all pages, as requested (no text on top of page cards)
-                if (badgeEl) {
-                    badgeEl.textContent = '';
-                    badgeEl.style.display = 'none';
-                }
-                if (headerEl) {
-                    headerEl.style.display = 'none';
-                }
-
-                if (stampEl) {
-                    if (info.is_active && !info.is_term) {
-                        stampEl.style.display = 'block';
-                    } else {
-                        stampEl.style.display = 'none';
+                    if (termBadgeText && info.is_term) {
+                        termBadgeText.textContent = `Pula Folha ${info.leaf_number}`;
                     }
-                }
+
+                    // Hide the top text badge headers completely for all pages, as requested (no text on top of page cards)
+                    if (badgeEl) {
+                        badgeEl.textContent = '';
+                        badgeEl.style.display = 'none';
+                    }
+                    if (headerEl) {
+                        headerEl.style.display = 'none';
+                    }
+
+                    if (stampEl) {
+                        if (info.is_active && !info.is_term) {
+                            stampEl.style.display = 'block';
+                        } else {
+                            stampEl.style.display = 'none';
+                        }
+                    }
+                });
             });
         }
 
         // Cria o Grid de visualização de páginas
         function renderGrid() {
             if (appState.activeFileIdx === -1) return;
-            const file = appState.queue[appState.activeFileIdx];
-            documentTitle.textContent = file.filename;
 
             emptyState.style.display = 'none';
             pagesGrid.innerHTML = '';
@@ -1733,8 +1845,9 @@
                 entries.forEach(entry => {
                     if (entry.isIntersecting) {
                         const img = entry.target;
+                        const fileId = img.getAttribute('data-file-id');
                         const pageIdx = img.getAttribute('data-page');
-                        img.src = `/api/preview/${file.fileId}/${pageIdx}`;
+                        img.src = `/api/preview/${fileId}/${pageIdx}`;
                         obs.unobserve(img);
                     }
                 });
@@ -1744,122 +1857,272 @@
                 threshold: 0.1
             });
 
-            file.pages.forEach(page => {
-                const info = file.pagesInfo ? file.pagesInfo[page.page_idx] : null;
-                const isTerm = info && info.is_active && info.is_term;
+            if (appState.viewMode === 'all-grid') {
+                documentTitle.textContent = `Grade Completa (${appState.queue.length} PDFs)`;
 
-                const container = document.createElement('div');
-                container.className = `page-container${!file.activePages.includes(page.page_idx) ? ' inactive' : ''}`;
-                if (isTerm) {
-                    container.classList.add('accent-term');
-                }
-                container.id = `page-container-${page.page_idx}`;
+                appState.queue.forEach((file, fileIdx) => {
+                    file.pages.forEach(page => {
+                        const info = file.pagesInfo ? file.pagesInfo[page.page_idx] : null;
+                        const isTerm = info && info.is_active && info.is_term;
 
-                // Header
-                const header = document.createElement('div');
-                header.className = 'page-header-info';
-                header.style.display = 'none'; // oculto por padrão
-                
-                const badge = document.createElement('span');
-                badge.className = 'page-badge';
-                badge.id = `badge-page-${page.page_idx}`;
+                        const container = document.createElement('div');
+                        container.className = `page-container${!file.activePages.includes(page.page_idx) ? ' inactive' : ''}`;
+                        if (isTerm) {
+                            container.classList.add('accent-term');
+                        }
+                        container.id = `page-container-${file.fileId}-${page.page_idx}`;
 
-                header.appendChild(badge);
+                        // Header
+                        const header = document.createElement('div');
+                        header.className = 'page-header-info';
+                        header.style.display = 'none'; // oculto por padrão
+                        
+                        const badge = document.createElement('span');
+                        badge.className = 'page-badge';
+                        badge.id = `badge-page-${file.fileId}-${page.page_idx}`;
 
-                // Wrapper
-                const wrapper = document.createElement('div');
-                wrapper.className = 'page-wrapper';
-                wrapper.id = `wrapper-page-${page.page_idx}`;
-                wrapper.setAttribute('data-page-idx', page.page_idx);
-                wrapper.style.width = zoomValNum + 'px';
-                
-                const ratio = zoomValNum / page.width;
-                wrapper.style.height = (page.height * ratio) + 'px';
+                        header.appendChild(badge);
 
-                if (isTerm) {
-                    // Render Term spacer card inner contents
-                    wrapper.classList.add('term-placeholder');
-                    wrapper.style.display = 'flex';
-                    wrapper.style.flexDirection = 'column';
-                    wrapper.style.alignItems = 'center';
-                    wrapper.style.justifyContent = 'center';
-                    wrapper.style.gap = '8px';
-                    wrapper.style.padding = '12px';
-                    wrapper.style.textAlign = 'center';
-                    
-                    // Folder SVG
-                    const svgHtml = `
-                        <svg viewBox="0 0 24 24" style="width: 36px; height: 36px; fill: var(--warning); margin-bottom: 4px;">
-                            <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,20H18A2,2 0 0,0 20,18V8L14,2M13,3.5L18.5,9H13V3.5M6,20V4H12V10H18V20H6Z"/>
-                        </svg>
-                    `;
-                    wrapper.innerHTML = svgHtml;
-                    
-                    const labelTitle = document.createElement('span');
-                    labelTitle.style.fontSize = '12px';
-                    labelTitle.style.fontWeight = '700';
-                    labelTitle.style.color = '#78350F';
-                    labelTitle.textContent = 'Termo de Abertura / Encerramento';
-                    wrapper.appendChild(labelTitle);
+                        // Wrapper
+                        const wrapper = document.createElement('div');
+                        wrapper.className = 'page-wrapper';
+                        wrapper.id = `wrapper-page-${file.fileId}-${page.page_idx}`;
+                        wrapper.setAttribute('data-page-idx', page.page_idx);
+                        wrapper.setAttribute('data-file-idx', fileIdx);
+                        wrapper.style.width = zoomValNum + 'px';
+                        
+                        const ratio = zoomValNum / page.width;
+                        wrapper.style.height = (page.height * ratio) + 'px';
 
-                    const labelBadge = document.createElement('span');
-                    labelBadge.style.fontSize = '10px';
-                    labelBadge.style.fontWeight = '600';
-                    labelBadge.style.color = '#B45309';
-                    labelBadge.style.backgroundColor = '#FEF3C7';
-                    labelBadge.style.padding = '2px 8px';
-                    labelBadge.style.borderRadius = '9999px';
-                    labelBadge.style.marginTop = '4px';
-                    labelBadge.id = `term-badge-text-${page.page_idx}`;
-                    labelBadge.textContent = info ? `Pula Folha ${info.leaf_number}` : 'Pula Folha';
-                    wrapper.appendChild(labelBadge);
-                } else {
-                    // Imagem de preview (lazy loaded)
-                    const img = document.createElement('img');
-                    img.className = 'page-img';
-                    img.setAttribute('data-page', page.page_idx);
-                    img.alt = `Página ${page.page_idx + 1}`;
-                    observer.observe(img);
+                        if (isTerm) {
+                            // Render Term spacer card inner contents
+                            wrapper.classList.add('term-placeholder');
+                            wrapper.style.display = 'flex';
+                            wrapper.style.flexDirection = 'column';
+                            wrapper.style.alignItems = 'center';
+                            wrapper.style.justifyContent = 'center';
+                            wrapper.style.gap = '8px';
+                            wrapper.style.padding = '12px';
+                            wrapper.style.textAlign = 'center';
+                            
+                            // Folder SVG
+                            const svgHtml = `
+                                <svg viewBox="0 0 24 24" style="width: 36px; height: 36px; fill: var(--warning); margin-bottom: 4px;">
+                                    <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,20H18A2,2 0 0,0 20,18V8L14,2M13,3.5L18.5,9H13V3.5M6,20V4H12V10H18V20H6Z"/>
+                                </svg>
+                            `;
+                            wrapper.innerHTML = svgHtml;
+                            
+                            const labelTitle = document.createElement('span');
+                            labelTitle.style.fontSize = '12px';
+                            labelTitle.style.fontWeight = '700';
+                            labelTitle.style.color = '#78350F';
+                            labelTitle.textContent = 'Termo de Abertura / Encerramento';
+                            wrapper.appendChild(labelTitle);
 
-                    // Carimbo flutuante overlay
-                    const stamp = document.createElement('div');
-                    stamp.className = 'stamp-overlay';
-                    stamp.id = `stamp-page-${page.page_idx}`;
-                    stamp.innerHTML = `
-                        <div class="stamp-text-container">
-                            <div class="stamp-row-1" id="stamp-row1-p${page.page_idx}">Processo n.º 9557/2026</div>
-                            <div class="stamp-row-2">
-                                <div class="stamp-col-left">
-                                    <div>Data do início:</div>
-                                    <div id="stamp-date-p${page.page_idx}">21/05/2026</div>
+                            const labelBadge = document.createElement('span');
+                            labelBadge.style.fontSize = '10px';
+                            labelBadge.style.fontWeight = '600';
+                            labelBadge.style.color = '#B45309';
+                            labelBadge.style.backgroundColor = '#FEF3C7';
+                            labelBadge.style.padding = '2px 8px';
+                            labelBadge.style.borderRadius = '9999px';
+                            labelBadge.style.marginTop = '4px';
+                            labelBadge.id = `term-badge-text-${file.fileId}-${page.page_idx}`;
+                            labelBadge.textContent = info ? `Pula Folha ${info.leaf_number}` : 'Pula Folha';
+                            wrapper.appendChild(labelBadge);
+                        } else {
+                            // Imagem de preview (lazy loaded)
+                            const img = document.createElement('img');
+                            img.className = 'page-img';
+                            img.setAttribute('data-file-id', file.fileId);
+                            img.setAttribute('data-page', page.page_idx);
+                            img.alt = `Página ${page.page_idx + 1}`;
+                            observer.observe(img);
+
+                            // Carimbo flutuante overlay
+                            const stamp = document.createElement('div');
+                            stamp.className = 'stamp-overlay';
+                            stamp.id = `stamp-page-${file.fileId}-${page.page_idx}`;
+                            stamp.innerHTML = `
+                                <div class="stamp-text-container">
+                                    <div class="stamp-row-1" id="stamp-row1-p${file.fileId}-${page.page_idx}">Processo n.º 9557/2026</div>
+                                    <div class="stamp-row-2">
+                                        <div class="stamp-col-left">
+                                            <div>Data do início:</div>
+                                            <div id="stamp-date-p${file.fileId}-${page.page_idx}">21/05/2026</div>
+                                        </div>
+                                        <div class="stamp-col-right" id="stamp-leaf-p${file.fileId}-${page.page_idx}">Fl.18</div>
+                                    </div>
+                                    <div class="stamp-row-3">Rubrica</div>
                                 </div>
-                                <div class="stamp-col-right" id="stamp-leaf-p${page.page_idx}">Fl.18</div>
-                            </div>
-                            <div class="stamp-row-3">Rubrica</div>
-                        </div>
-                        <div class="resize-handle" id="resize-handle-${page.page_idx}"></div>
-                    `;
-                    initDragAndDrop(stamp, page.page_idx, page.width, page.height);
+                                <div class="resize-handle" id="resize-handle-${file.fileId}-${page.page_idx}"></div>
+                            `;
+                            initDragAndDrop(stamp, fileIdx, page.page_idx, page.width, page.height);
 
-                    wrapper.appendChild(img);
-                    wrapper.appendChild(stamp);
-                }
+                            wrapper.appendChild(img);
+                            wrapper.appendChild(stamp);
+                        }
 
-                // Botão de ativamento da página
-                const btnToggle = document.createElement('button');
-                btnToggle.className = 'btn-page-toggle';
-                btnToggle.innerHTML = file.activePages.includes(page.page_idx) ? '✓' : '✕';
-                btnToggle.title = "Ativar/Desativar página no lote";
-                btnToggle.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    togglePageActive(page.page_idx);
+                        // Botão de ativamento da página
+                        const btnToggle = document.createElement('button');
+                        btnToggle.className = 'btn-page-toggle';
+                        btnToggle.innerHTML = file.activePages.includes(page.page_idx) ? '✓' : '✕';
+                        btnToggle.title = "Ativar/Desativar página no lote";
+                        btnToggle.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            togglePageActive(fileIdx, page.page_idx);
+                        });
+
+                        wrapper.appendChild(btnToggle);
+                        container.appendChild(header);
+                        container.appendChild(wrapper);
+                        pagesGrid.appendChild(container);
+                    });
+
+                    // Add separator between files (except after the last one)
+                    if (fileIdx < appState.queue.length - 1) {
+                        const nextFile = appState.queue[fileIdx + 1];
+                        const separator = document.createElement('div');
+                        separator.className = 'grid-separator-card';
+                        
+                        const label = document.createElement('span');
+                        label.className = 'separator-label';
+                        label.textContent = 'Próximo PDF';
+                        separator.appendChild(label);
+                        
+                        const filename = document.createElement('span');
+                        filename.className = 'separator-filename';
+                        filename.title = nextFile.filename;
+                        filename.textContent = nextFile.filename;
+                        separator.appendChild(filename);
+                        
+                        pagesGrid.appendChild(separator);
+                    }
                 });
+            } else {
+                const file = appState.queue[appState.activeFileIdx];
+                documentTitle.textContent = file.filename;
 
-                wrapper.appendChild(btnToggle);
-                container.appendChild(header);
-                container.appendChild(wrapper);
-                pagesGrid.appendChild(container);
-            });
+                file.pages.forEach(page => {
+                    const info = file.pagesInfo ? file.pagesInfo[page.page_idx] : null;
+                    const isTerm = info && info.is_active && info.is_term;
+
+                    const container = document.createElement('div');
+                    container.className = `page-container${!file.activePages.includes(page.page_idx) ? ' inactive' : ''}`;
+                    if (isTerm) {
+                        container.classList.add('accent-term');
+                    }
+                    container.id = `page-container-${file.fileId}-${page.page_idx}`;
+
+                    // Header
+                    const header = document.createElement('div');
+                    header.className = 'page-header-info';
+                    header.style.display = 'none'; // oculto por padrão
+                    
+                    const badge = document.createElement('span');
+                    badge.className = 'page-badge';
+                    badge.id = `badge-page-${file.fileId}-${page.page_idx}`;
+
+                    header.appendChild(badge);
+
+                    // Wrapper
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'page-wrapper';
+                    wrapper.id = `wrapper-page-${file.fileId}-${page.page_idx}`;
+                    wrapper.setAttribute('data-page-idx', page.page_idx);
+                    wrapper.setAttribute('data-file-idx', appState.activeFileIdx);
+                    wrapper.style.width = zoomValNum + 'px';
+                    
+                    const ratio = zoomValNum / page.width;
+                    wrapper.style.height = (page.height * ratio) + 'px';
+
+                    if (isTerm) {
+                        // Render Term spacer card inner contents
+                        wrapper.classList.add('term-placeholder');
+                        wrapper.style.display = 'flex';
+                        wrapper.style.flexDirection = 'column';
+                        wrapper.style.alignItems = 'center';
+                        wrapper.style.justifyContent = 'center';
+                        wrapper.style.gap = '8px';
+                        wrapper.style.padding = '12px';
+                        wrapper.style.textAlign = 'center';
+                        
+                        // Folder SVG
+                        const svgHtml = `
+                            <svg viewBox="0 0 24 24" style="width: 36px; height: 36px; fill: var(--warning); margin-bottom: 4px;">
+                                <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,20H18A2,2 0 0,0 20,18V8L14,2M13,3.5L18.5,9H13V3.5M6,20V4H12V10H18V20H6Z"/>
+                            </svg>
+                        `;
+                        wrapper.innerHTML = svgHtml;
+                        
+                        const labelTitle = document.createElement('span');
+                        labelTitle.style.fontSize = '12px';
+                        labelTitle.style.fontWeight = '700';
+                        labelTitle.style.color = '#78350F';
+                        labelTitle.textContent = 'Termo de Abertura / Encerramento';
+                        wrapper.appendChild(labelTitle);
+
+                        const labelBadge = document.createElement('span');
+                        labelBadge.style.fontSize = '10px';
+                        labelBadge.style.fontWeight = '600';
+                        labelBadge.style.color = '#B45309';
+                        labelBadge.style.backgroundColor = '#FEF3C7';
+                        labelBadge.style.padding = '2px 8px';
+                        labelBadge.style.borderRadius = '9999px';
+                        labelBadge.style.marginTop = '4px';
+                        labelBadge.id = `term-badge-text-${file.fileId}-${page.page_idx}`;
+                        labelBadge.textContent = info ? `Pula Folha ${info.leaf_number}` : 'Pula Folha';
+                        wrapper.appendChild(labelBadge);
+                    } else {
+                        // Imagem de preview (lazy loaded)
+                        const img = document.createElement('img');
+                        img.className = 'page-img';
+                        img.setAttribute('data-file-id', file.fileId);
+                        img.setAttribute('data-page', page.page_idx);
+                        img.alt = `Página ${page.page_idx + 1}`;
+                        observer.observe(img);
+
+                        // Carimbo flutuante overlay
+                        const stamp = document.createElement('div');
+                        stamp.className = 'stamp-overlay';
+                        stamp.id = `stamp-page-${file.fileId}-${page.page_idx}`;
+                        stamp.innerHTML = `
+                            <div class="stamp-text-container">
+                                <div class="stamp-row-1" id="stamp-row1-p${file.fileId}-${page.page_idx}">Processo n.º 9557/2026</div>
+                                <div class="stamp-row-2">
+                                    <div class="stamp-col-left">
+                                        <div>Data do início:</div>
+                                        <div id="stamp-date-p${file.fileId}-${page.page_idx}">21/05/2026</div>
+                                    </div>
+                                    <div class="stamp-col-right" id="stamp-leaf-p${file.fileId}-${page.page_idx}">Fl.18</div>
+                                </div>
+                                <div class="stamp-row-3">Rubrica</div>
+                            </div>
+                            <div class="resize-handle" id="resize-handle-${file.fileId}-${page.page_idx}"></div>
+                        `;
+                        initDragAndDrop(stamp, appState.activeFileIdx, page.page_idx, page.width, page.height);
+
+                        wrapper.appendChild(img);
+                        wrapper.appendChild(stamp);
+                    }
+
+                    // Botão de ativamento da página
+                    const btnToggle = document.createElement('button');
+                    btnToggle.className = 'btn-page-toggle';
+                    btnToggle.innerHTML = file.activePages.includes(page.page_idx) ? '✓' : '✕';
+                    btnToggle.title = "Ativar/Desativar página no lote";
+                    btnToggle.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        togglePageActive(appState.activeFileIdx, page.page_idx);
+                    });
+
+                    wrapper.appendChild(btnToggle);
+                    container.appendChild(header);
+                    container.appendChild(wrapper);
+                    pagesGrid.appendChild(container);
+                });
+            }
 
             updateStampGeometries();
             updateAllStampText();
@@ -1867,9 +2130,9 @@
         }
 
         // Alterna ativação de uma página específica
-        function togglePageActive(pageIdx) {
-            if (appState.activeFileIdx === -1) return;
-            const file = appState.queue[appState.activeFileIdx];
+        function togglePageActive(fileIdx, pageIdx) {
+            const file = appState.queue[fileIdx];
+            if (!file) return;
             
             const activeIdx = file.activePages.indexOf(pageIdx);
             if (activeIdx > -1) {
@@ -1888,7 +2151,7 @@
         }
 
         // Inicializa o evento de arrastar e redimensionar o carimbo
-        function initDragAndDrop(stampEl, pageIdx, pageW, pageH) {
+        function initDragAndDrop(stampEl, fileIdx, pageIdx, pageW, pageH) {
             let isDragging = false;
             let isResizing = false;
             let startX, startY;
@@ -1909,7 +2172,7 @@
                 startWidth = stampEl.offsetWidth;
                 startHeight = stampEl.offsetHeight;
                 
-                const file = appState.queue[appState.activeFileIdx];
+                const file = appState.queue[fileIdx];
                 if (appState.positionMode) {
                     if (!appState.customCoords[file.fileId]) appState.customCoords[file.fileId] = {};
                     currentScale = appState.customCoords[file.fileId][pageIdx]?.scale || appState.scale;
@@ -1931,9 +2194,9 @@
             });
 
             document.addEventListener('mousemove', (e) => {
-                if (appState.activeFileIdx === -1) return;
-                const file = appState.queue[appState.activeFileIdx];
-                const wrapper = document.getElementById(`wrapper-page-${pageIdx}`);
+                const file = appState.queue[fileIdx];
+                if (!file) return;
+                const wrapper = document.getElementById(`wrapper-page-${file.fileId}-${pageIdx}`);
                 if (!wrapper) return;
 
                 const currentScreenWidth = wrapper.offsetWidth;
@@ -2001,99 +2264,111 @@
             });
         }
 
-        // Atualiza tamanho e posições de todos os carimbos no PDF ativo
+        // Atualiza tamanho e posições de todos os carimbos nos PDFs exibidos
         function updateStampGeometries() {
-            if (appState.activeFileIdx === -1) return;
-            const file = appState.queue[appState.activeFileIdx];
+            if (appState.queue.length === 0) return;
 
-            file.pages.forEach(page => {
-                const stampEl = document.getElementById(`stamp-page-${page.page_idx}`);
-                const wrapper = document.getElementById(`wrapper-page-${page.page_idx}`);
-                if (!stampEl || !wrapper) return;
+            const filesToUpdate = (appState.viewMode === 'all-grid') 
+                ? appState.queue 
+                : [appState.queue[appState.activeFileIdx]].filter(Boolean);
 
-                const currentScreenWidth = wrapper.offsetWidth;
-                const ratio = currentScreenWidth / page.width;
+            filesToUpdate.forEach(file => {
+                file.pages.forEach(page => {
+                    const stampEl = document.getElementById(`stamp-page-${file.fileId}-${page.page_idx}`);
+                    const wrapper = document.getElementById(`wrapper-page-${file.fileId}-${page.page_idx}`);
+                    if (!stampEl || !wrapper) return;
 
-                let x0, y0, s;
+                    const currentScreenWidth = wrapper.offsetWidth;
+                    const ratio = currentScreenWidth / page.width;
 
-                if (appState.positionMode && appState.customCoords[file.fileId]?.[page.page_idx]) {
-                    const coords = appState.customCoords[file.fileId][page.page_idx];
-                    x0 = coords.x0;
-                    y0 = coords.y0;
-                    s = coords.scale;
-                } else if (appState.globalCoords.x0 !== null) {
-                    const g = appState.globalCoords;
-                    if (g.refWidth && g.refWidth > 0) {
-                        const right_offset = g.refWidth - g.x0;
-                        x0 = page.width - right_offset;
+                    let x0, y0, s;
+
+                    if (appState.positionMode && appState.customCoords[file.fileId]?.[page.page_idx]) {
+                        const coords = appState.customCoords[file.fileId][page.page_idx];
+                        x0 = coords.x0;
+                        y0 = coords.y0;
+                        s = coords.scale;
+                    } else if (appState.globalCoords.x0 !== null) {
+                        const g = appState.globalCoords;
+                        if (g.refWidth && g.refWidth > 0) {
+                            const right_offset = g.refWidth - g.x0;
+                            x0 = page.width - right_offset;
+                        } else {
+                            x0 = g.x0;
+                        }
+                        y0 = g.y0;
+                        s = appState.scale;
                     } else {
-                        x0 = g.x0;
+                        s = appState.scale;
+                        const w_stamp = STAMP_BASE_WIDTH * s;
+                        x0 = page.width - MARGIN_RIGHT - w_stamp;
+                        y0 = MARGIN_TOP;
                     }
-                    y0 = g.y0;
-                    s = appState.scale;
-                } else {
-                    s = appState.scale;
-                    const w_stamp = STAMP_BASE_WIDTH * s;
-                    x0 = page.width - MARGIN_RIGHT - w_stamp;
-                    y0 = MARGIN_TOP;
-                }
 
-                const screenWidth = (STAMP_BASE_WIDTH * s) * ratio;
-                const screenHeight = (STAMP_BASE_HEIGHT * s) * ratio;
-                const screenLeft = x0 * ratio;
-                const screenTop = y0 * ratio;
+                    const screenWidth = (STAMP_BASE_WIDTH * s) * ratio;
+                    const screenHeight = (STAMP_BASE_HEIGHT * s) * ratio;
+                    const screenLeft = x0 * ratio;
+                    const screenTop = y0 * ratio;
 
-                stampEl.style.width = screenWidth + 'px';
-                stampEl.style.height = screenHeight + 'px';
-                stampEl.style.left = screenLeft + 'px';
-                stampEl.style.top = screenTop + 'px';
-                
-                const textContainer = stampEl.querySelector('.stamp-text-container');
-                if (textContainer) {
-                    const fontSizePx = 8.0 * s * ratio;
-                    textContainer.style.fontSize = fontSizePx + 'px';
+                    stampEl.style.width = screenWidth + 'px';
+                    stampEl.style.height = screenHeight + 'px';
+                    stampEl.style.left = screenLeft + 'px';
+                    stampEl.style.top = screenTop + 'px';
                     
-                    const borderWidthPx = (1.2 * s * ratio) + 'px';
-                    stampEl.style.borderWidth = borderWidthPx;
-                    
-                    const row1 = textContainer.querySelector('.stamp-row-1');
-                    if (row1) {
-                        row1.style.fontSize = 'inherit';
-                        row1.style.borderBottomWidth = borderWidthPx;
+                    const textContainer = stampEl.querySelector('.stamp-text-container');
+                    if (textContainer) {
+                        const fontSizePx = 8.0 * s * ratio;
+                        textContainer.style.fontSize = fontSizePx + 'px';
+                        
+                        const borderWidthPx = (1.2 * s * ratio) + 'px';
+                        stampEl.style.borderWidth = borderWidthPx;
+                        
+                        const row1 = textContainer.querySelector('.stamp-row-1');
+                        if (row1) {
+                            row1.style.fontSize = 'inherit';
+                            row1.style.borderBottomWidth = borderWidthPx;
+                        }
+                        const row2 = textContainer.querySelector('.stamp-row-2');
+                        if (row2) {
+                            row2.style.borderBottomWidth = borderWidthPx;
+                        }
+                        const leftCol = textContainer.querySelector('.stamp-col-left');
+                        if (leftCol) {
+                            leftCol.style.fontSize = 'inherit';
+                            leftCol.style.borderRightWidth = borderWidthPx;
+                        }
+                        const rightCol = textContainer.querySelector('.stamp-col-right');
+                        if (rightCol) {
+                            rightCol.style.fontSize = 'inherit';
+                        }
+                        const row3 = textContainer.querySelector('.stamp-row-3');
+                        if (row3) {
+                            row3.style.fontSize = 'inherit';
+                        }
                     }
-                    const row2 = textContainer.querySelector('.stamp-row-2');
-                    if (row2) {
-                        row2.style.borderBottomWidth = borderWidthPx;
-                    }
-                    const leftCol = textContainer.querySelector('.stamp-col-left');
-                    if (leftCol) {
-                        leftCol.style.fontSize = 'inherit';
-                        leftCol.style.borderRightWidth = borderWidthPx;
-                    }
-                    const rightCol = textContainer.querySelector('.stamp-col-right');
-                    if (rightCol) {
-                        rightCol.style.fontSize = 'inherit';
-                    }
-                    const row3 = textContainer.querySelector('.stamp-row-3');
-                    if (row3) {
-                        row3.style.fontSize = 'inherit';
-                    }
-                }
+                });
             });
         }
 
         // Atualiza textos internos dos carimbos ativos
         function updateAllStampText() {
-            if (appState.activeFileIdx === -1) return;
-            const file = appState.queue[appState.activeFileIdx];
-            file.pagesInfo.forEach(info => {
-                const r1 = document.getElementById(`stamp-row1-p${info.page_idx}`);
-                const dateEl = document.getElementById(`stamp-date-p${info.page_idx}`);
-                const leafEl = document.getElementById(`stamp-leaf-p${info.page_idx}`);
+            if (appState.queue.length === 0) return;
 
-                if (r1) r1.textContent = `Processo n.º ${appState.processNumber}`;
-                if (dateEl) dateEl.textContent = appState.startDate;
-                if (leafEl) leafEl.textContent = `Fl.${info.leaf_number}`;
+            const filesToUpdate = (appState.viewMode === 'all-grid') 
+                ? appState.queue 
+                : [appState.queue[appState.activeFileIdx]].filter(Boolean);
+
+            filesToUpdate.forEach(file => {
+                if (!file.pagesInfo) return;
+                file.pagesInfo.forEach(info => {
+                    const r1 = document.getElementById(`stamp-row1-p${file.fileId}-${info.page_idx}`);
+                    const dateEl = document.getElementById(`stamp-date-p${file.fileId}-${info.page_idx}`);
+                    const leafEl = document.getElementById(`stamp-leaf-p${file.fileId}-${info.page_idx}`);
+
+                    if (r1) r1.textContent = `Processo n.º ${appState.processNumber}`;
+                    if (dateEl) dateEl.textContent = appState.startDate;
+                    if (leafEl) leafEl.textContent = `Fl.${info.leaf_number}`;
+                });
             });
         }
 
