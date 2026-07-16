@@ -1,0 +1,2280 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIGFolha - Carimbador Dinâmico de PDF</title>
+    <!-- Google Fonts: Inter, DM Sans & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap" rel="stylesheet">
+    <!-- SortableJS para reordenação da fila por arrasto -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+    <style>
+        :root {
+            --bg-main: #F7F7F5;
+            --bg-sidebar: #FFFFFF;
+            --bg-card: #FBFAF9;
+            --border-color: #E7E6E5;
+            
+            --text-primary: #1C1917;
+            --text-secondary: #57534E;
+            --text-muted: #79716B;
+            
+            --primary: #E4544B;
+            --primary-hover: #C9443A;
+            --accent: #E4544B;
+            --accent-hover: #C9443A;
+            --warning: #D97706;
+            --success: #16A34A;
+            
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 1px 3px rgba(28, 25, 23, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
+            --shadow-lg: 0 8px 24px rgba(28, 25, 23, 0.08), 0 2px 6px rgba(28, 25, 23, 0.04);
+            
+            --zoom-size: 200px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: Graphik, Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-primary);
+            height: 100vh;
+            display: flex;
+            flex-direction: row-reverse; /* Barra lateral à direita */
+            overflow: hidden;
+        }
+
+        /* Lateral Sidebar */
+        .sidebar {
+            width: 360px;
+            background-color: var(--bg-sidebar);
+            border-left: 1px solid var(--border-color); /* Borda no lado esquerdo */
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            flex-shrink: 0;
+            box-shadow: var(--shadow-sm); /* Charm style: tone first, thin shadow */
+            z-index: 10;
+        }
+
+        .sidebar-header {
+            padding: 24px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .sidebar-header svg {
+            width: 32px;
+            height: 32px;
+            fill: var(--primary);
+        }
+
+        .sidebar-header h1 {
+            font-family: Graphik, Arial, sans-serif;
+            font-size: 24px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #E87060 0%, #E4544B 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.02em;
+        }
+
+        .sidebar-content {
+            padding: 24px;
+            overflow-y: auto;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .section-title {
+            font-family: Graphik, Arial, sans-serif;
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            border-bottom: 1.5px solid var(--border-color);
+            padding-bottom: 6px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .input-group label {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .input-group input[type="text"],
+        .input-group input[type="number"],
+        .input-group input[type="date"] {
+            width: 100%;
+            padding: 10px 18px;
+            background-color: white;
+            border: 1.5px solid var(--border-color);
+            border-radius: 12px; /* Smooth rounded corners */
+            color: var(--text-primary);
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(228, 84, 75, 0.2);
+        }
+
+        /* Checkbox & Switch Switch */
+        .switch-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background-color: var(--bg-card);
+            padding: 12px 16px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        .switch-container label {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            cursor: pointer;
+            user-select: none;
+            flex-grow: 1;
+            margin-right: 8px;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+            flex-shrink: 0;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #E7E6E5;
+            transition: .3s;
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--primary);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(20px);
+        }
+
+        /* Slider de Escala */
+        .scale-slider-container {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .scale-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .scale-input-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .scale-input-wrapper input[type="range"] {
+            flex-grow: 1;
+            height: 6px;
+            border-radius: 3px;
+            outline: none;
+            background: #E7E6E5;
+            accent-color: var(--primary);
+            cursor: pointer;
+        }
+
+        .scale-val {
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--text-primary);
+            width: 45px;
+            text-align: right;
+        }
+
+        /* Removed .dropzone styles */
+
+        /* Ações Finais */
+        .sidebar-footer {
+            padding: 24px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 12px; /* Smooth rounded corners */
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #E87060 0%, #E4544B 60%, #D94A41 100%);
+            color: white;
+            box-shadow: 0 1px 3px rgba(228,84,75,0.25), 0 1px 2px rgba(0,0,0,0.06);
+        }
+
+        .btn-primary:hover {
+            box-shadow: 0 4px 12px rgba(228,84,75,0.35);
+            transform: translateY(-1px);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-primary:disabled {
+            background: #E7E6E5;
+            color: var(--text-muted);
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+
+        /* Workspace Central */
+        .workspace {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            background-color: var(--bg-main);
+        }
+
+        /* Barra de Ferramentas */
+        .toolbar {
+            height: 64px;
+            border-bottom: 1px solid var(--border-color);
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background-color: var(--bg-card);
+        }
+
+        .toolbar-title {
+            font-family: Graphik, Arial, sans-serif;
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .history-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-icon {
+            background-color: var(--bg-card);
+            border: 1.5px solid var(--border-color);
+            border-radius: 12px; /* Smooth rounded corners */
+            width: 38px;
+            height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--text-secondary);
+        }
+
+        .btn-icon:hover:not(:disabled) {
+            background-color: var(--bg-main);
+            color: var(--text-primary);
+            border-color: var(--text-muted);
+        }
+
+        .btn-icon:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .btn-icon svg {
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
+        }
+
+        /* Área de Visualização do Documento */
+        .document-viewer {
+            flex-grow: 1;
+            padding: 24px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Estado Vazio */
+        .empty-state {
+            margin: auto;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            width: 100%;
+            max-width: 500px;
+            padding: 60px 40px;
+            border: 2px dashed rgba(228, 84, 75, 0.4);
+            border-radius: 24px;
+            background-color: rgba(228, 84, 75, 0.02);
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            user-select: none;
+        }
+
+        .empty-state:hover {
+            background-color: rgba(228, 84, 75, 0.06);
+            border-color: var(--primary);
+            transform: scale(1.01);
+        }
+
+        .empty-state svg {
+            width: 80px;
+            height: 80px;
+            fill: var(--text-muted);
+            transition: transform 0.2s, fill 0.2s;
+        }
+
+        .empty-state:hover svg {
+            transform: translateY(-6px);
+            fill: var(--primary);
+        }
+
+        .empty-state h3 {
+            font-family: Graphik, Arial, sans-serif;
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .empty-state p {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        /* Alerta de Volume */
+        .volume-alert-container {
+            width: 100%;
+            max-width: 1000px;
+            margin-bottom: 24px;
+        }
+
+        .volume-alert {
+            background-color: #FEF3C7;
+            border: 1.5px solid var(--warning);
+            border-radius: 9999px; /* Pill alert */
+            padding: 12px 24px;
+            color: #78350F;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            font-size: 14px;
+            line-height: 1.5;
+            box-shadow: var(--shadow-sm);
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .volume-alert svg {
+            width: 24px;
+            height: 24px;
+            fill: var(--warning);
+            flex-shrink: 0;
+        }
+
+        /* Grade de Miniaturas do PDF */
+        .grid-view {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(var(--zoom-size), 1fr));
+            gap: 32px;
+            width: 100%;
+            max-width: 100%;
+            align-self: stretch;
+            padding-bottom: 40px;
+        }
+
+        /* Container de Página */
+        .page-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: center;
+            position: relative;
+        }
+
+        .page-header-info {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            padding: 0 4px;
+        }
+
+        .page-badge {
+            background-color: var(--border-color);
+            padding: 2px 8px;
+            border-radius: 9999px; /* Pill */
+            font-size: 10px;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .page-badge.badge-term {
+            background-color: var(--warning);
+            color: white;
+        }
+
+        .page-badge.badge-stamp {
+            background-color: var(--success);
+            color: white;
+        }
+
+        .page-badge.badge-start {
+            background-color: #3B82F6;
+            color: white;
+        }
+
+        .page-badge.badge-end {
+            background-color: #6B7280;
+            color: white;
+        }
+
+        /* Accents on page boxes */
+        .page-container.accent-start .page-wrapper {
+            border-color: #3B82F6 !important;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25) !important;
+        }
+        .page-container.accent-end .page-wrapper {
+            border-color: #6B7280 !important;
+            box-shadow: 0 0 0 3px rgba(107, 114, 128, 0.25) !important;
+        }
+        .page-container.accent-term .page-wrapper {
+            border-color: var(--warning) !important;
+            box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.25) !important;
+        }
+
+        /* Wrapper da Imagem do PDF e Carimbo */
+        .page-wrapper {
+            position: relative;
+            background-color: white;
+            border-radius: 12px; /* Denser components use softer corners */
+            box-shadow: 0 1px 3px rgba(28,25,23,0.05);
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: default;
+            user-select: none;
+        }
+
+        .page-wrapper:hover {
+            box-shadow: 0 4px 12px rgba(28,25,23,0.08), 0 0 0 2px rgba(228, 84, 75, 0.3);
+        }
+
+        .page-img {
+            width: 100%;
+            height: auto;
+            display: block;
+            pointer-events: none;
+        }
+
+        /* Elemento Carimbo Flutuante */
+        .stamp-overlay {
+            position: absolute;
+            border: 1.2px solid #000;
+            background-color: transparent;
+            cursor: move;
+            z-index: 5;
+            box-sizing: border-box;
+            transition: border-color 0.15s, background-color 0.15s;
+        }
+
+        .stamp-overlay:hover {
+            box-shadow: 0 0 0 2px var(--accent);
+        }
+
+        /* Alças de Redimensionamento */
+        .resize-handle {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background-color: var(--accent);
+            border: 1px solid white;
+            border-radius: 50%;
+            bottom: -4px;
+            right: -4px;
+            cursor: se-resize;
+            z-index: 6;
+        }
+
+        .resize-handle:hover {
+            transform: scale(1.3);
+            background-color: var(--accent-hover);
+        }
+
+        /* Texto Simulado Interno do Carimbo */
+        .stamp-text-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            font-size: 8px; /* Will be scaled dynamically by JS */
+            font-weight: 700;
+            color: #000;
+            line-height: 1.1;
+            padding: 0;
+            pointer-events: none;
+            overflow: hidden;
+            font-family: 'Century Gothic', 'Questrial', 'CenturyGothic', sans-serif;
+        }
+
+        .stamp-row-1 {
+            border-bottom: 1.2px solid #000;
+            text-align: left;
+            height: 26.67%; /* 16/60 */
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            padding-left: 4%;
+            font-size: inherit;
+        }
+
+        .stamp-row-2 {
+            border-bottom: 1.2px solid #000;
+            display: flex;
+            height: 36.67%; /* 22/60 */
+        }
+
+        .stamp-col-left {
+            width: 68%; /* 102/150 */
+            border-right: 1.2px solid #000;
+            padding-left: 4%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: flex-start;
+            font-size: inherit;
+        }
+
+        .stamp-col-right {
+            width: 32%; /* 48/150 */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: inherit;
+        }
+
+        .stamp-row-3 {
+            padding-left: 4%;
+            height: 36.67%; /* 22/60 */
+            display: flex;
+            align-items: flex-start;
+            padding-top: 1%;
+            font-size: inherit;
+        }
+
+        /* Carregando */
+        .loader-spinner {
+            border: 4px solid rgba(28, 25, 23, 0.1);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border-left-color: var(--primary);
+            animation: spin 1s linear infinite;
+            margin-bottom: 12px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Abas da Sidebar */
+        .sidebar-tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border-color);
+            background-color: rgba(28, 25, 23, 0.02);
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 14px;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+        .tab-btn.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+            background-color: white;
+        }
+        .tab-btn:hover:not(.active) {
+            color: var(--text-primary);
+        }
+
+        /* Cards da Fila de PDFs */
+        .pdf-queue-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding-bottom: 12px;
+        }
+        .pdf-queue-card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+        }
+        .pdf-queue-card:hover {
+            border-color: var(--primary);
+            background-color: white;
+        }
+        .pdf-queue-card.active {
+            border-color: var(--primary);
+            background-color: rgba(228, 84, 75, 0.06);
+        }
+        .card-drag-handle {
+            cursor: grab;
+            color: var(--text-muted);
+            font-size: 16px;
+            padding: 0 4px;
+        }
+        .card-drag-handle:active {
+            cursor: grabbing;
+        }
+        .card-info {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-width: 0;
+        }
+        .card-filename {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-primary);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .card-page-count {
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+        .card-inputs {
+            width: 80px;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .card-inputs label {
+            font-size: 9px;
+            color: var(--text-muted);
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .card-interval-input {
+            width: 100%;
+            padding: 6px;
+            font-size: 11px;
+            border: 1px solid var(--border-color);
+            background-color: white;
+            border-radius: 8px; /* Smooth rounded corners */
+            color: var(--text-primary);
+            text-align: center;
+        }
+        .card-interval-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+        .btn-card-remove {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 14px;
+            padding: 4px 6px;
+            border-radius: 4px;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+        .btn-card-remove:hover {
+            color: var(--primary);
+            background-color: rgba(228, 84, 75, 0.08);
+        }
+
+        /* Layout em Lista Central */
+        .grid-view.list-layout {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 32px;
+        }
+
+        /* Estados de Inatividade do Grid */
+        .page-container.inactive .page-wrapper {
+            opacity: 0.35;
+            box-shadow: none;
+            border-color: var(--border-color);
+        }
+        .page-container.inactive .stamp-overlay {
+            display: none !important;
+        }
+        .page-container.inactive .page-badge {
+            background-color: var(--border-color);
+            color: var(--text-muted);
+        }
+
+        /* Botão de Alternância de Página no Grid */
+        .btn-page-toggle {
+            position: absolute;
+            bottom: 6px;
+            right: 6px;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background-color: rgba(251, 250, 249, 0.9);
+            border: 1px solid var(--border-color);
+            color: var(--success);
+            font-size: 11px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 12;
+            transition: all 0.2s;
+            box-shadow: var(--shadow-sm);
+        }
+        .btn-page-toggle:hover {
+            transform: scale(1.1);
+            background-color: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+        .page-container.inactive .btn-page-toggle {
+            color: var(--text-muted);
+            background-color: rgba(251, 250, 249, 0.9);
+        }
+        .page-container.inactive .btn-page-toggle:hover {
+            background-color: var(--success);
+            color: white;
+            border-color: var(--success);
+        }
+
+        /* Controles de Zoom e Modo de Exibição */
+        .view-mode-selector {
+            display: flex;
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px; /* Smooth rounded corners */
+            overflow: hidden;
+        }
+        .view-mode-selector .btn-icon {
+            border: none;
+            border-radius: 0;
+            background: none;
+            width: 36px;
+            height: 36px;
+        }
+        .view-mode-selector .btn-icon.active {
+            background-color: var(--primary);
+            color: white;
+        }
+        .zoom-slider-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            padding: 4px 16px;
+            border-radius: 12px; /* Smooth rounded corners */
+            height: 38px;
+        }
+        .zoom-slider-container input[type="range"] {
+            height: 4px;
+            width: 80px;
+            background: #E7E6E5;
+            accent-color: var(--primary);
+            cursor: pointer;
+        }
+        .zoom-slider-container span {
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Barra Lateral de Configurações -->
+    <div class="sidebar">
+        <!-- Abas Condicionais (só aparecem se queue.length >= 2) -->
+        <div class="sidebar-tabs" id="sidebar-tabs" style="display: none;">
+            <button class="tab-btn active" id="tab-btn-params" onclick="switchSidebarTab('params')">Configurações</button>
+            <button class="tab-btn" id="tab-btn-queue" onclick="switchSidebarTab('queue')">Fila (<span id="queue-count">0</span>)</button>
+        </div>
+
+        <div class="sidebar-content">
+            <!-- PAINEL DE PARÂMETROS -->
+            <div id="sidebar-params-panel" style="display: flex; flex-direction: column; gap: 20px;">
+
+                <!-- Parâmetros do Carimbo -->
+                <div style="display: flex; flex-direction: column; gap: 14px;">
+                    <div class="section-title">Dados do Carimbo</div>
+                    
+                    <div class="input-group">
+                        <label for="process-number">Número do Processo</label>
+                        <input type="text" id="process-number" value="9557/2026">
+                    </div>
+
+                    <div class="input-group">
+                        <label for="start-date">Data de Início</label>
+                        <input type="text" id="start-date" value="21/05/2026">
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                        <div class="input-group">
+                            <label for="start-leaf">Folha Inicial</label>
+                            <input type="number" id="start-leaf" value="1" min="1">
+                        </div>
+                        <div class="input-group">
+                            <label for="volume-limit">Limite Volume</label>
+                            <input type="number" id="volume-limit" value="200" min="10">
+                        </div>
+                    </div>
+
+                    <div class="switch-container">
+                        <label for="reserve-terms">Pular folhas para termo de encerramento/abertura</label>
+                        <label class="switch">
+                            <input type="checkbox" id="reserve-terms" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Controles Geométricos -->
+                <div style="display: flex; flex-direction: column; gap: 14px;">
+                    <div class="section-title">Layout & Posicionamento</div>
+
+                    <div class="scale-slider-container">
+                        <div class="scale-header">
+                            <span>Escala do Carimbo</span>
+                            <span class="scale-val" id="scale-val">100%</span>
+                        </div>
+                        <div class="scale-input-wrapper">
+                            <input type="range" id="scale-range" min="50" max="150" value="100">
+                        </div>
+                    </div>
+
+                    <div class="switch-container">
+                        <label for="pos-mode">Posicionamento Customizado (por página)</label>
+                        <label class="switch">
+                            <input type="checkbox" id="pos-mode">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PAINEL DA FILA DE PDFs (Oculto por padrão) -->
+            <div id="sidebar-queue-panel" style="display: none; flex-direction: column; gap: 12px;">
+                <div class="section-title">Fila de Arquivos (Arraste para Reordenar)</div>
+                <div class="pdf-queue-list" id="pdf-queue-list">
+                    <!-- Cards gerados dinamicamente via JS -->
+                </div>
+                <p style="font-size: 11px; color: var(--text-muted); text-align: center; margin-top: 8px;">
+                    Arraste novos PDFs na tela para adicionar à fila
+                </p>
+            </div>
+        </div>
+
+        <div class="sidebar-footer">
+            <button class="btn btn-primary" id="btn-save-batch" disabled>
+                <!-- Ícone de Download -->
+                <svg style="width: 18px; height: 18px; fill: currentColor; margin-right: 4px;" viewBox="0 0 24 24">
+                    <path d="M5,20H19V18H5M19,9H15V3H9V9H5L12,16L19,9Z"/>
+                </svg>
+                Salvar PDFs Carimbados
+            </button>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px;">
+                <button class="btn" id="btn-open-batch" disabled style="background-color: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-color); font-size: 13px; padding: 10px;">
+                    🔍 Salvar e Abrir
+                </button>
+                <button class="btn" id="btn-print-batch" disabled style="background-color: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-color); font-size: 13px; padding: 10px;">
+                    🖨️ Imprimir
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Workspace Central -->
+    <div class="workspace">
+        <!-- Barra de Ferramentas Superior -->
+        <div class="toolbar">
+            <div style="display: flex; align-items: center; gap: 16px;">
+                <div class="logo-container" style="display: flex; align-items: center; gap: 8px;">
+                    <!-- Ícone de Tabela (Carimbo) -->
+                    <svg viewBox="0 0 24 24" style="width: 24px; height: 24px; fill: var(--primary);">
+                        <path d="M5,4H19A2,2 0 0,1 21,6V18A2,2 0 0,1 19,20H5A2,2 0 0,1 3,18V6A2,2 0 0,1 5,4M5,8V12H11V8H5M13,8V12H19V8H13M5,14V18H11V14H5M13,14V18H19V14H13Z"/>
+                    </svg>
+                    <span style="font-family: Graphik, Arial, sans-serif; font-size: 20px; font-weight: 800; background: linear-gradient(135deg, #E87060 0%, #E4544B 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: -0.02em;">SIGFolha</span>
+                </div>
+                <div style="width: 1px; height: 20px; background-color: var(--border-color);"></div>
+                <div class="toolbar-title" id="document-title">Nenhum documento carregado</div>
+            </div>
+            
+            <div style="display: flex; align-items: center; gap: 16px;">
+                <!-- Zoom Slider -->
+                <div class="zoom-slider-container" id="zoom-controls" style="display: none;">
+                    <span>Miniaturas:</span>
+                    <input type="range" id="zoom-range" min="100" max="600" value="200">
+                    <span id="zoom-val">200px</span>
+                </div>
+                
+                <!-- Grid vs List View -->
+                <div class="view-mode-selector" id="view-mode-controls" style="display: none;">
+                    <button class="btn-icon active" id="btn-view-grid" title="Grade de Miniaturas">
+                        <svg viewBox="0 0 24 24"><path d="M4,4H10V10H4V4M20,4V10H14V4H20M14,14H20V20H14V14M4,14H10V20H4V14M6,6V8H8V6H6M16,6V8H18V6H16M16,16V18H18V16H16M6,16V18H8V16H6Z"/></svg>
+                    </button>
+                    <button class="btn-icon" id="btn-view-list" title="Lista de Páginas">
+                        <svg viewBox="0 0 24 24"><path d="M7,5H21V7H7V5M7,11H21V13H7V11M7,17H21V19H7V17M3,5H5V7H3V5M3,11H5V13H3V11M3,17H5V19H3V17Z"/></svg>
+                    </button>
+                </div>
+                
+                <div class="history-controls">
+                    <button class="btn-icon" id="btn-undo" title="Desfazer (Ctrl+Z)" disabled>
+                        <svg viewBox="0 0 24 24">
+                            <path d="M12.5,8C9.85,8 7.45,9 5.6,10.6L2,7V16H11L7.38,12.38C8.77,11.22 10.54,10.5 12.5,10.5C16.04,10.5 19.05,12.81 20.1,16L22.47,15.22C21.08,11.08 17.14,8 12.5,8Z"/>
+                        </svg>
+                    </button>
+                    <button class="btn-icon" id="btn-redo" title="Refazer (Ctrl+Y)" disabled>
+                        <svg viewBox="0 0 24 24">
+                            <path d="M18.4,10.6C16.55,9 14.15,8 11.5,8C6.86,8 2.92,11.08 1.53,15.22L3.9,16C4.95,12.81 7.96,10.5 11.5,10.5C13.46,10.5 15.23,11.22 16.62,12.38L13,16H22V7L18.4,10.6Z"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Área Principal de Visualização -->
+        <div class="document-viewer" id="viewer-area">
+            <!-- Estado Inicial Sem Arquivo -->
+            <div class="empty-state" id="empty-state">
+                <svg viewBox="0 0 24 24">
+                    <path d="M19.35,10.04C18.67,6.59 15.64,4 12,4C9.11,4 6.6,5.64 5.35,8.04C2.34,8.36 0,10.91 0,14C0,17.31 2.69,20 6,20H19C21.76,20 24,17.76 24,15C24,12.36 21.95,10.22 19.35,10.04M19,18H6C3.79,18 2,16.21 2,14C2,11.95 3.53,10.24 5.56,10.03L6.63,9.92L7.13,8.97C8.08,7.14 9.94,6 12,6C14.62,6 16.88,7.86 17.39,10.43L17.69,11.93L19.22,12.04C20.78,12.14 22,13.45 22,15C22,16.65 20.65,18 19,18M8,13H10.55V16H13.45V13H16L12,9L8,13Z"/>
+                </svg>
+                <h3>Arraste o PDF aqui ou clique para enviar</h3>
+                <p>Arraste os seus arquivos PDF em qualquer lugar da tela ou clique neste painel para carregá-los.</p>
+            </div>
+
+            <!-- Alerta de volume -->
+            <div class="volume-alert-container" id="volume-alert-container" style="display: none;">
+                <div class="volume-alert">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M12,2L1,21H23L12,2M12,6L19.53,19H4.47L12,6M11,10V14H13V10H11M11,16V18H13V16H11Z"/>
+                    </svg>
+                    <div>
+                        <strong>Aviso de Quebra de Volume!</strong><br>
+                        <span id="volume-alert-text">A numeração atingiu ou ultrapassou o limite do volume. Haverá quebra de volume.</span>
+                    </div>
+                </div>
+            </div>
+            <!-- Grade de miniaturas das páginas -->
+            <div class="grid-view" id="pages-grid" style="display: none;">
+                <!-- Páginas geradas dinamicamente via JS -->
+            </div>
+        </div>
+    </div>
+
+    <input type="file" id="file-input" accept="application/pdf" style="display: none;" multiple>
+
+    <!-- Script SPA -->
+    <script>
+        // Configurações padrão do sistema
+        const STAMP_BASE_WIDTH = 150.0;
+        const STAMP_BASE_HEIGHT = 60.0;
+        const MARGIN_RIGHT = 20.0;
+        const MARGIN_TOP = 20.0;
+
+        // Estado do Aplicativo
+        let appState = {
+            queue: [],       // Array de arquivos: {fileId, filename, totalPages, pages: [], pagesInfo: [], intervalText: 'Todos', activePages: []}
+            activeFileIdx: -1, // Índice do arquivo ativo visualizado na área central
+            
+            // Parâmetros globais do formulário
+            processNumber: '9557/2026',
+            startDate: '21/05/2026',
+            startLeaf: 1,
+            volumeLimit: 200,
+            reserveTerms: true,
+            
+            // Geometria
+            scale: 1.0,
+            positionMode: false, // false = Global, true = Customizado por página
+            globalCoords: { x0: null, y0: null },
+            customCoords: {} // Mapeamento de fileId: { page_idx: {x0, y0, scale} }
+        };
+
+        // Pilhas de Histórico (Undo/Redo)
+        let undoStack = [];
+        let redoStack = [];
+
+        // Elementos DOM
+        const fileInput = document.getElementById('file-input');
+        const documentTitle = document.getElementById('document-title');
+        const emptyState = document.getElementById('empty-state');
+        const volumeAlertContainer = document.getElementById('volume-alert-container');
+        const volumeAlertText = document.getElementById('volume-alert-text');
+        const pagesGrid = document.getElementById('pages-grid');
+        
+        const processNumberInput = document.getElementById('process-number');
+        const startDateInput = document.getElementById('start-date');
+        const startLeafInput = document.getElementById('start-leaf');
+        const volumeLimitInput = document.getElementById('volume-limit');
+        const reserveTermsCheckbox = document.getElementById('reserve-terms');
+        const scaleRange = document.getElementById('scale-range');
+        const scaleValLabel = document.getElementById('scale-val');
+        const posModeCheckbox = document.getElementById('pos-mode');
+        
+        const btnUndo = document.getElementById('btn-undo');
+        const btnRedo = document.getElementById('btn-redo');
+
+        // Novos Elementos para o Lote
+        const sidebarTabs = document.getElementById('sidebar-tabs');
+        const pdfQueueList = document.getElementById('pdf-queue-list');
+        const zoomRange = document.getElementById('zoom-range');
+        const zoomVal = document.getElementById('zoom-val');
+        const zoomControls = document.getElementById('zoom-controls');
+        const viewModeControls = document.getElementById('view-mode-controls');
+        const btnViewGrid = document.getElementById('btn-view-grid');
+        const btnViewList = document.getElementById('btn-view-list');
+        
+        const btnSaveBatch = document.getElementById('btn-save-batch');
+        const btnOpenBatch = document.getElementById('btn-open-batch');
+        const btnPrintBatch = document.getElementById('btn-print-batch');
+
+        // Registro de Eventos do Upload (Global e no Painel Central)
+        emptyState.addEventListener('click', () => {
+            const input = document.getElementById('file-input');
+            if (input) input.click();
+        });
+
+        window.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            if (emptyState.style.display !== 'none') {
+                emptyState.style.backgroundColor = 'rgba(228, 84, 75, 0.08)';
+                emptyState.style.borderColor = 'var(--primary)';
+            }
+        });
+        window.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            if (emptyState.style.display !== 'none') {
+                emptyState.style.backgroundColor = 'rgba(228, 84, 75, 0.02)';
+                emptyState.style.borderColor = 'rgba(228, 84, 75, 0.4)';
+            }
+        });
+        window.addEventListener('drop', (e) => {
+            e.preventDefault();
+            if (emptyState.style.display !== 'none') {
+                emptyState.style.backgroundColor = 'rgba(228, 84, 75, 0.02)';
+                emptyState.style.borderColor = 'rgba(228, 84, 75, 0.4)';
+            }
+            if (e.dataTransfer.files.length > 0) {
+                handleFilesUpload(e.dataTransfer.files);
+            }
+        });
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFilesUpload(e.target.files);
+            }
+        });
+
+        // Configuração dos Inputs do Formulário
+        const inputs = [processNumberInput, startDateInput, startLeafInput, volumeLimitInput, reserveTermsCheckbox];
+        inputs.forEach(input => {
+            input.addEventListener('change', () => {
+                readFormInputs();
+                recalculateSequences();
+                renderGrid();
+            });
+        });
+
+        // Slider de Escala
+        scaleRange.addEventListener('input', (e) => {
+            const val = parseInt(e.target.value);
+            scaleValLabel.textContent = val + '%';
+            
+            saveToHistory();
+            appState.scale = val / 100.0;
+            
+            updateStampGeometries();
+        });
+
+        // Posicionamento Customizado (Alternador)
+        posModeCheckbox.addEventListener('change', (e) => {
+            saveToHistory();
+            appState.positionMode = e.target.checked;
+            updateStampGeometries();
+        });
+
+        // Controles de Exibição do Workspace
+        zoomRange.addEventListener('input', (e) => {
+            const val = e.target.value;
+            zoomVal.textContent = val + 'px';
+            
+            // Atualizar propriedade CSS customizada no root para reflow
+            document.documentElement.style.setProperty('--zoom-size', val + 'px');
+            
+            // Redimensionar os wrappers das páginas dinamicamente
+            document.querySelectorAll('.page-wrapper').forEach(el => {
+                el.style.width = val + 'px';
+                const pageIdx = parseInt(el.getAttribute('data-page-idx'));
+                const file = appState.queue[appState.activeFileIdx];
+                if (file && file.pages[pageIdx]) {
+                    const ratio = val / file.pages[pageIdx].width;
+                    el.style.height = (file.pages[pageIdx].height * ratio) + 'px';
+                }
+            });
+            updateStampGeometries();
+        });
+
+        // Zoom com a roda do mouse (Ctrl + Roda do Mouse)
+        document.getElementById('viewer-area').addEventListener('wheel', (e) => {
+            if (e.ctrlKey) {
+                e.preventDefault();
+                const zoomMin = parseInt(zoomRange.min) || 100;
+                const zoomMax = parseInt(zoomRange.max) || 600;
+                const zoomStep = 30; // Velocidade do zoom
+                let currentVal = parseInt(zoomRange.value);
+                
+                if (e.deltaY < 0) {
+                    currentVal = Math.min(zoomMax, currentVal + zoomStep);
+                } else {
+                    currentVal = Math.max(zoomMin, currentVal - zoomStep);
+                }
+                
+                zoomRange.value = currentVal;
+                zoomRange.dispatchEvent(new Event('input'));
+            }
+        }, { passive: false });
+
+        btnViewGrid.addEventListener('click', () => {
+            btnViewGrid.classList.add('active');
+            btnViewList.classList.remove('active');
+            pagesGrid.classList.remove('list-layout');
+        });
+        btnViewList.addEventListener('click', () => {
+            btnViewList.classList.add('active');
+            btnViewGrid.classList.remove('active');
+            pagesGrid.classList.add('list-layout');
+        });
+
+        // Desfazer / Refazer
+        btnUndo.addEventListener('click', undo);
+        btnRedo.addEventListener('click', redo);
+        window.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'z') {
+                e.preventDefault();
+                undo();
+            } else if (e.ctrlKey && e.key === 'y') {
+                e.preventDefault();
+                redo();
+            }
+        });
+
+        // Ações Rápidas de Lote
+        btnSaveBatch.addEventListener('click', () => processBatchStamps('save'));
+        btnOpenBatch.addEventListener('click', () => processBatchStamps('open'));
+        btnPrintBatch.addEventListener('click', () => processBatchStamps('print'));
+
+        // Função de troca de abas da Sidebar
+        function switchSidebarTab(tab) {
+            const tabParams = document.getElementById('tab-btn-params');
+            const tabQueue = document.getElementById('tab-btn-queue');
+            const panelParams = document.getElementById('sidebar-params-panel');
+            const panelQueue = document.getElementById('sidebar-queue-panel');
+            
+            if (tab === 'params') {
+                tabParams.classList.add('active');
+                tabQueue.classList.remove('active');
+                panelParams.style.display = 'flex';
+                panelQueue.style.display = 'none';
+            } else {
+                tabQueue.classList.add('active');
+                tabParams.classList.remove('active');
+                panelParams.style.display = 'none';
+                panelQueue.style.display = 'flex';
+            }
+        }
+
+        // Upload de múltiplos arquivos PDF
+        async function handleFilesUpload(filesList) {
+            if (filesList.length === 0) return;
+
+            // Exibir loading
+            emptyState.innerHTML = `
+                <div class="loader-spinner"></div>
+                <h3>Processando arquivos PDF...</h3>
+                <p>Lendo metadados e gerando miniaturas para o lote.</p>
+            `;
+            emptyState.style.display = 'flex';
+            pagesGrid.style.display = 'none';
+            volumeAlertContainer.style.display = 'none';
+
+            // Reiniciar histórico no novo carregamento
+            undoStack = [];
+            redoStack = [];
+            updateHistoryButtons();
+
+            for (let i = 0; i < filesList.length; i++) {
+                const file = filesList[i];
+                if (!file || file.type !== 'application/pdf') {
+                    alert(`O arquivo ${file ? file.name : ''} não é um PDF válido e será pulado.`);
+                    continue;
+                }
+
+                const formData = new FormData();
+                formData.append('file', file);
+
+                try {
+                    const response = await fetch('/api/upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('Falha no upload do arquivo.');
+                    }
+
+                    const data = await response.json();
+                    
+                    // Adicionar arquivo à fila
+                    appState.queue.push({
+                        fileId: data.file_id,
+                        filename: data.filename,
+                        totalPages: data.total_pages,
+                        pages: data.pages,
+                        pagesInfo: data.pages_info,
+                        intervalText: 'Todos',
+                        activePages: Array.from({length: data.total_pages}, (_, idx) => idx)
+                    });
+
+                } catch (err) {
+                    alert(`Erro ao carregar o arquivo ${file.name}: ` + err.message);
+                }
+            }
+
+            if (appState.queue.length > 0) {
+                // Definir primeiro arquivo como ativo caso nenhum esteja selecionado
+                if (appState.activeFileIdx === -1) {
+                    appState.activeFileIdx = 0;
+                }
+                
+                // Mostrar controles visuais do workspace
+                zoomControls.style.display = 'flex';
+                viewModeControls.style.display = 'flex';
+                
+                // Habilitar botões
+                btnSaveBatch.disabled = false;
+                btnOpenBatch.disabled = false;
+                btnPrintBatch.disabled = false;
+
+                // Atualizar UI da fila e o Grid
+                updateQueueUI();
+                recalculateSequences();
+                renderGrid();
+            } else {
+                resetToEmptyState();
+            }
+        }
+
+        // Reseta o SPA para o estado vazio inicial
+        function resetToEmptyState() {
+            appState.queue = [];
+            appState.activeFileIdx = -1;
+            appState.globalCoords = { x0: null, y0: null };
+            appState.customCoords = {};
+            
+            documentTitle.textContent = "Nenhum documento carregado";
+            zoomControls.style.display = 'none';
+            viewModeControls.style.display = 'none';
+            sidebarTabs.style.display = 'none';
+            switchSidebarTab('params');
+            
+            emptyState.innerHTML = `
+                <svg viewBox="0 0 24 24">
+                    <path d="M19.35,10.04C18.67,6.59 15.64,4 12,4C9.11,4 6.6,5.64 5.35,8.04C2.34,8.36 0,10.91 0,14C0,17.31 2.69,20 6,20H19C21.76,20 24,17.76 24,15C24,12.36 21.95,10.22 19.35,10.04M19,18H6C3.79,18 2,16.21 2,14C2,11.95 3.53,10.24 5.56,10.03L6.63,9.92L7.13,8.97C8.08,7.14 9.94,6 12,6C14.62,6 16.88,7.86 17.39,10.43L17.69,11.93L19.22,12.04C20.78,12.14 22,13.45 22,15C22,16.65 20.65,18 19,18M8,13H10.55V16H13.45V13H16L12,9L8,13Z"/>
+                </svg>
+                <h3>Arraste o PDF aqui ou clique para enviar</h3>
+                <p>Arraste os seus arquivos PDF em qualquer lugar da tela ou clique neste painel para carregá-los.</p>
+            `;
+            emptyState.style.display = 'flex';
+            pagesGrid.style.display = 'none';
+            volumeAlertContainer.style.display = 'none';
+            
+            btnSaveBatch.disabled = true;
+            btnOpenBatch.disabled = true;
+            btnPrintBatch.disabled = true;
+        }
+
+        // Atualiza a Fila na Sidebar
+        function updateQueueUI() {
+            const countEl = document.getElementById('queue-count');
+            countEl.textContent = appState.queue.length;
+
+            if (appState.queue.length >= 2) {
+                sidebarTabs.style.display = 'flex';
+            } else {
+                sidebarTabs.style.display = 'none';
+                switchSidebarTab('params');
+            }
+
+            pdfQueueList.innerHTML = '';
+
+            appState.queue.forEach((file, idx) => {
+                const card = document.createElement('div');
+                card.className = `pdf-queue-card${idx === appState.activeFileIdx ? ' active' : ''}`;
+                
+                card.innerHTML = `
+                    <div class="card-drag-handle" onclick="event.stopPropagation()">☰</div>
+                    <div class="card-info">
+                        <span class="card-filename" title="${file.filename}">${file.filename}</span>
+                        <span class="card-page-count">${file.totalPages} páginas</span>
+                    </div>
+                    <div class="card-inputs" onclick="event.stopPropagation()">
+                        <label>Páginas</label>
+                        <input type="text" class="card-interval-input" id="interval-input-${file.fileId}" value="${file.intervalText}">
+                    </div>
+                    <button class="btn-card-remove" onclick="removeFileFromQueue(${idx}); event.stopPropagation();">🗑️</button>
+                `;
+
+                // Clique para carregar o arquivo no visualizador central
+                card.addEventListener('click', () => {
+                    appState.activeFileIdx = idx;
+                    document.querySelectorAll('.pdf-queue-card').forEach(el => el.classList.remove('active'));
+                    card.classList.add('active');
+                    renderGrid();
+                    recalculateSequences();
+                });
+
+                // Entrada de texto de intervalo
+                const input = card.querySelector('.card-interval-input');
+                input.addEventListener('change', (e) => {
+                    const val = e.target.value;
+                    file.intervalText = val;
+                    file.activePages = parsePageIntervalJS(val, file.totalPages);
+                    recalculateSequences();
+                    renderGrid();
+                });
+
+                pdfQueueList.appendChild(card);
+            });
+
+            // Configurar SortableJS para arrasto e reordenação
+            if (appState.queue.length >= 2) {
+                Sortable.create(pdfQueueList, {
+                    handle: '.card-drag-handle',
+                    animation: 150,
+                    onEnd: function(evt) {
+                        const oldIdx = evt.oldIndex;
+                        const newIdx = evt.newIndex;
+                        if (oldIdx === newIdx) return;
+                        
+                        // Atualizar a fila de dados
+                        const movedItem = appState.queue.splice(oldIdx, 1)[0];
+                        appState.queue.splice(newIdx, 0, movedItem);
+
+                        // Ajustar index ativo
+                        if (appState.activeFileIdx === oldIdx) {
+                            appState.activeFileIdx = newIdx;
+                        } else if (appState.activeFileIdx > oldIdx && appState.activeFileIdx <= newIdx) {
+                            appState.activeFileIdx--;
+                        } else if (appState.activeFileIdx < oldIdx && appState.activeFileIdx >= newIdx) {
+                            appState.activeFileIdx++;
+                        }
+
+                        updateQueueUI();
+                        recalculateSequences();
+                        renderGrid();
+                    }
+                });
+            }
+        }
+
+        // Remove um PDF da fila
+        function removeFileFromQueue(idx) {
+            appState.queue.splice(idx, 1);
+            if (appState.queue.length === 0) {
+                resetToEmptyState();
+            } else {
+                if (appState.activeFileIdx >= appState.queue.length) {
+                    appState.activeFileIdx = appState.queue.length - 1;
+                }
+                updateQueueUI();
+                recalculateSequences();
+                renderGrid();
+            }
+        }
+
+        // Lê dados do formulário e salva no Estado
+        function readFormInputs() {
+            appState.processNumber = processNumberInput.value;
+            appState.startDate = startDateInput.value;
+            appState.startLeaf = parseInt(startLeafInput.value) || 1;
+            appState.volumeLimit = parseInt(volumeLimitInput.value) || 200;
+            appState.reserveTerms = reserveTermsCheckbox.checked;
+        }
+
+        // Parser JS de intervalo de páginas
+        function parsePageIntervalJS(str, totalPages) {
+            const val = str.trim().toLowerCase();
+            if (!val || val === 'todos' || val === 'todas' || val === 'all') {
+                return Array.from({length: totalPages}, (_, i) => i);
+            }
+            const activePages = new Set();
+            const parts = val.split(',');
+            for (let part of parts) {
+                part = part.trim();
+                if (!part) continue;
+                if (part.includes('-')) {
+                    const ranges = part.split('-');
+                    if (ranges.length === 2) {
+                        const start = parseInt(ranges[0].trim());
+                        const end = parseInt(ranges[1].trim());
+                        if (!isNaN(start) && !isNaN(end)) {
+                            const s = Math.min(start, end);
+                            const e = Math.max(start, end);
+                            for (let p = s; p <= e; p++) {
+                                if (p >= 1 && p <= totalPages) {
+                                    activePages.add(p - 1);
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    const p = parseInt(part);
+                    if (!isNaN(p)) {
+                        if (p >= 1 && p <= totalPages) {
+                            activePages.add(p - 1);
+                        }
+                    }
+                }
+            }
+            return Array.from(activePages).sort((a, b) => a - b);
+        }
+
+        // Converte array de páginas ativas em string de intervalo
+        function activePagesToIntervalStr(activePages, totalPages) {
+            if (activePages.length === totalPages) return 'Todos';
+            if (activePages.length === 0) return 'Nenhuma';
+            
+            const sorted = [...activePages].sort((a, b) => a - b);
+            const ranges = [];
+            let start = sorted[0];
+            let prev = sorted[0];
+            
+            for (let i = 1; i <= sorted.length; i++) {
+                const curr = sorted[i];
+                if (curr === prev + 1) {
+                    prev = curr;
+                } else {
+                    if (start === prev) {
+                        ranges.push(`${start + 1}`);
+                    } else {
+                        ranges.push(`${start + 1}-${prev + 1}`);
+                    }
+                    start = curr;
+                    prev = curr;
+                }
+            }
+            return ranges.join(', ');
+        }
+
+        // Orquestrador de numeração sequencial global no lote
+        function recalculateSequences() {
+            if (appState.queue.length === 0) return;
+
+            let currentLeaf = appState.startLeaf;
+
+            appState.queue.forEach(file => {
+                file.startLeafCalculated = currentLeaf;
+                file.pagesInfo = [];
+
+                for (let idx = 0; idx < file.totalPages; idx++) {
+                    const isActive = file.activePages.includes(idx);
+
+                    if (!isActive) {
+                        file.pagesInfo.push({
+                            page_idx: idx,
+                            should_stamp: false,
+                            leaf_number: null,
+                            is_term: false,
+                            is_active: false
+                        });
+                    } else {
+                        let isTerm = false;
+                        if (appState.reserveTerms) {
+                            if (currentLeaf > 1 && (currentLeaf % appState.volumeLimit === 0 || currentLeaf % appState.volumeLimit === 1)) {
+                                isTerm = true;
+                            }
+                        }
+
+                        if (isTerm) {
+                            file.pagesInfo.push({
+                                page_idx: idx,
+                                should_stamp: false,
+                                leaf_number: currentLeaf,
+                                is_term: true,
+                                is_active: true
+                            });
+                            currentLeaf += 1;
+                        } else {
+                            file.pagesInfo.push({
+                                page_idx: idx,
+                                should_stamp: true,
+                                leaf_number: currentLeaf,
+                                is_term: false,
+                                is_active: true
+                            });
+                            currentLeaf += 1;
+                        }
+                    }
+                }
+            });
+
+            // Cálculo dos alertas de quebra de volume
+            let minLeafGlobal = Infinity;
+            let maxLeafGlobal = -Infinity;
+            let hasStampsGlobal = false;
+
+            appState.queue.forEach(file => {
+                file.pagesInfo.forEach(p => {
+                    if (p.leaf_number !== null) {
+                        hasStampsGlobal = true;
+                        if (p.leaf_number < minLeafGlobal) minLeafGlobal = p.leaf_number;
+                        if (p.leaf_number > maxLeafGlobal) maxLeafGlobal = p.leaf_number;
+                    }
+                });
+            });
+
+            if (hasStampsGlobal && maxLeafGlobal >= appState.volumeLimit) {
+                const volMin = Math.floor((minLeafGlobal - 1) / appState.volumeLimit) + 1;
+                const volMax = Math.floor((maxLeafGlobal - 1) / appState.volumeLimit) + 1;
+                if (volMin !== volMax || maxLeafGlobal % appState.volumeLimit === 0) {
+                    volumeAlertText.textContent = `Atenção: A numeração total acumulada das folhas (${minLeafGlobal} a ${maxLeafGlobal}) ultrapassa limites de múltiplos de ${appState.volumeLimit}. Haverá quebra de volume!`;
+                    volumeAlertContainer.style.display = 'block';
+                } else {
+                    volumeAlertContainer.style.display = 'none';
+                }
+            } else {
+                volumeAlertContainer.style.display = 'none';
+            }
+
+            // Atualiza os badges no documento ativo
+            updateActiveDocumentBadges();
+        }
+
+        // Atualiza badges visuais no Grid
+        function updateActiveDocumentBadges() {
+            if (appState.activeFileIdx === -1) return;
+            const file = appState.queue[appState.activeFileIdx];
+
+            file.pagesInfo.forEach(info => {
+                const badgeEl = document.getElementById(`badge-page-${info.page_idx}`);
+                const stampEl = document.getElementById(`stamp-page-${info.page_idx}`);
+                const containerEl = document.getElementById(`page-container-${info.page_idx}`);
+                const headerEl = containerEl ? containerEl.querySelector('.page-header-info') : null;
+                const termBadgeText = document.getElementById(`term-badge-text-${info.page_idx}`);
+
+                if (containerEl) {
+                    containerEl.classList.remove('accent-start', 'accent-end', 'accent-term');
+                    if (!info.is_active) {
+                        containerEl.classList.add('inactive');
+                    } else {
+                        containerEl.classList.remove('inactive');
+                        // Check if it is a Termo (reserveTerms is active) or an affected boundary page (reserveTerms is inactive)
+                        let isAffected = false;
+                        if (appState.reserveTerms) {
+                            isAffected = info.is_term;
+                        } else if (info.leaf_number !== null) {
+                            isAffected = info.leaf_number > 1 && (info.leaf_number % appState.volumeLimit === 0 || info.leaf_number % appState.volumeLimit === 1);
+                        }
+
+                        if (isAffected) {
+                            containerEl.classList.add('accent-term');
+                        }
+                    }
+                }
+
+                if (termBadgeText && info.is_term) {
+                    termBadgeText.textContent = `Pula Folha ${info.leaf_number}`;
+                }
+
+                // Hide the top text badge headers completely for all pages, as requested (no text on top of page cards)
+                if (badgeEl) {
+                    badgeEl.textContent = '';
+                    badgeEl.style.display = 'none';
+                }
+                if (headerEl) {
+                    headerEl.style.display = 'none';
+                }
+
+                if (stampEl) {
+                    if (info.is_active && !info.is_term) {
+                        stampEl.style.display = 'block';
+                    } else {
+                        stampEl.style.display = 'none';
+                    }
+                }
+            });
+        }
+
+        // Cria o Grid de visualização de páginas
+        function renderGrid() {
+            if (appState.activeFileIdx === -1) return;
+            const file = appState.queue[appState.activeFileIdx];
+            documentTitle.textContent = file.filename;
+
+            emptyState.style.display = 'none';
+            pagesGrid.innerHTML = '';
+            pagesGrid.style.display = 'grid';
+            pagesGrid.style.display = ''; // Mantém flex/grid configurado pelas classes
+
+            const zoomValNum = parseInt(zoomRange.value);
+            document.documentElement.style.setProperty('--zoom-size', zoomValNum + 'px');
+
+            // Observer para lazy-loading das miniaturas
+            const observer = new IntersectionObserver((entries, obs) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const img = entry.target;
+                        const pageIdx = img.getAttribute('data-page');
+                        img.src = `/api/preview/${file.fileId}/${pageIdx}`;
+                        obs.unobserve(img);
+                    }
+                });
+            }, {
+                root: document.getElementById('viewer-area'),
+                rootMargin: '100px 0px 100px 0px',
+                threshold: 0.1
+            });
+
+            file.pages.forEach(page => {
+                const info = file.pagesInfo ? file.pagesInfo[page.page_idx] : null;
+                const isTerm = info && info.is_active && info.is_term;
+
+                const container = document.createElement('div');
+                container.className = `page-container${!file.activePages.includes(page.page_idx) ? ' inactive' : ''}`;
+                if (isTerm) {
+                    container.classList.add('accent-term');
+                }
+                container.id = `page-container-${page.page_idx}`;
+
+                // Header
+                const header = document.createElement('div');
+                header.className = 'page-header-info';
+                header.style.display = 'none'; // oculto por padrão
+                
+                const badge = document.createElement('span');
+                badge.className = 'page-badge';
+                badge.id = `badge-page-${page.page_idx}`;
+
+                header.appendChild(badge);
+
+                // Wrapper
+                const wrapper = document.createElement('div');
+                wrapper.className = 'page-wrapper';
+                wrapper.id = `wrapper-page-${page.page_idx}`;
+                wrapper.setAttribute('data-page-idx', page.page_idx);
+                wrapper.style.width = zoomValNum + 'px';
+                
+                const ratio = zoomValNum / page.width;
+                wrapper.style.height = (page.height * ratio) + 'px';
+
+                if (isTerm) {
+                    // Render Term spacer card inner contents
+                    wrapper.classList.add('term-placeholder');
+                    wrapper.style.display = 'flex';
+                    wrapper.style.flexDirection = 'column';
+                    wrapper.style.alignItems = 'center';
+                    wrapper.style.justifyContent = 'center';
+                    wrapper.style.gap = '8px';
+                    wrapper.style.padding = '12px';
+                    wrapper.style.textAlign = 'center';
+                    
+                    // Folder SVG
+                    const svgHtml = `
+                        <svg viewBox="0 0 24 24" style="width: 36px; height: 36px; fill: var(--warning); margin-bottom: 4px;">
+                            <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,20H18A2,2 0 0,0 20,18V8L14,2M13,3.5L18.5,9H13V3.5M6,20V4H12V10H18V20H6Z"/>
+                        </svg>
+                    `;
+                    wrapper.innerHTML = svgHtml;
+                    
+                    const labelTitle = document.createElement('span');
+                    labelTitle.style.fontSize = '12px';
+                    labelTitle.style.fontWeight = '700';
+                    labelTitle.style.color = '#78350F';
+                    labelTitle.textContent = 'Termo de Abertura / Encerramento';
+                    wrapper.appendChild(labelTitle);
+
+                    const labelBadge = document.createElement('span');
+                    labelBadge.style.fontSize = '10px';
+                    labelBadge.style.fontWeight = '600';
+                    labelBadge.style.color = '#B45309';
+                    labelBadge.style.backgroundColor = '#FEF3C7';
+                    labelBadge.style.padding = '2px 8px';
+                    labelBadge.style.borderRadius = '9999px';
+                    labelBadge.style.marginTop = '4px';
+                    labelBadge.id = `term-badge-text-${page.page_idx}`;
+                    labelBadge.textContent = info ? `Pula Folha ${info.leaf_number}` : 'Pula Folha';
+                    wrapper.appendChild(labelBadge);
+                } else {
+                    // Imagem de preview (lazy loaded)
+                    const img = document.createElement('img');
+                    img.className = 'page-img';
+                    img.setAttribute('data-page', page.page_idx);
+                    img.alt = `Página ${page.page_idx + 1}`;
+                    observer.observe(img);
+
+                    // Carimbo flutuante overlay
+                    const stamp = document.createElement('div');
+                    stamp.className = 'stamp-overlay';
+                    stamp.id = `stamp-page-${page.page_idx}`;
+                    stamp.innerHTML = `
+                        <div class="stamp-text-container">
+                            <div class="stamp-row-1" id="stamp-row1-p${page.page_idx}">Processo n.º 9557/2026</div>
+                            <div class="stamp-row-2">
+                                <div class="stamp-col-left">
+                                    <div>Data do início:</div>
+                                    <div id="stamp-date-p${page.page_idx}">21/05/2026</div>
+                                </div>
+                                <div class="stamp-col-right" id="stamp-leaf-p${page.page_idx}">Fl.18</div>
+                            </div>
+                            <div class="stamp-row-3">Rubrica</div>
+                        </div>
+                        <div class="resize-handle" id="resize-handle-${page.page_idx}"></div>
+                    `;
+                    initDragAndDrop(stamp, page.page_idx, page.width, page.height);
+
+                    wrapper.appendChild(img);
+                    wrapper.appendChild(stamp);
+                }
+
+                // Botão de ativamento da página
+                const btnToggle = document.createElement('button');
+                btnToggle.className = 'btn-page-toggle';
+                btnToggle.innerHTML = file.activePages.includes(page.page_idx) ? '✓' : '✕';
+                btnToggle.title = "Ativar/Desativar página no lote";
+                btnToggle.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    togglePageActive(page.page_idx);
+                });
+
+                wrapper.appendChild(btnToggle);
+                container.appendChild(header);
+                container.appendChild(wrapper);
+                pagesGrid.appendChild(container);
+            });
+
+            updateStampGeometries();
+            updateAllStampText();
+            updateActiveDocumentBadges();
+        }
+
+        // Alterna ativação de uma página específica
+        function togglePageActive(pageIdx) {
+            if (appState.activeFileIdx === -1) return;
+            const file = appState.queue[appState.activeFileIdx];
+            
+            const activeIdx = file.activePages.indexOf(pageIdx);
+            if (activeIdx > -1) {
+                file.activePages.splice(activeIdx, 1);
+            } else {
+                file.activePages.push(pageIdx);
+                file.activePages.sort((a, b) => a - b);
+            }
+
+            file.intervalText = activePagesToIntervalStr(file.activePages, file.totalPages);
+            const inputEl = document.getElementById(`interval-input-${file.fileId}`);
+            if (inputEl) inputEl.value = file.intervalText;
+
+            recalculateSequences();
+            renderGrid();
+        }
+
+        // Inicializa o evento de arrastar e redimensionar o carimbo
+        function initDragAndDrop(stampEl, pageIdx, pageW, pageH) {
+            let isDragging = false;
+            let isResizing = false;
+            let startX, startY;
+            let startLeft, startTop;
+            let startWidth, startHeight;
+            let currentScale = 1.0;
+
+            const resizeHandle = stampEl.querySelector('.resize-handle');
+
+            resizeHandle.addEventListener('mousedown', (e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                isResizing = true;
+                saveToHistory();
+
+                startX = e.clientX;
+                startY = e.clientY;
+                startWidth = stampEl.offsetWidth;
+                startHeight = stampEl.offsetHeight;
+                
+                const file = appState.queue[appState.activeFileIdx];
+                if (appState.positionMode) {
+                    if (!appState.customCoords[file.fileId]) appState.customCoords[file.fileId] = {};
+                    currentScale = appState.customCoords[file.fileId][pageIdx]?.scale || appState.scale;
+                } else {
+                    currentScale = appState.scale;
+                }
+            });
+
+            stampEl.addEventListener('mousedown', (e) => {
+                if (isResizing) return;
+                e.preventDefault();
+                isDragging = true;
+                saveToHistory();
+
+                startX = e.clientX;
+                startY = e.clientY;
+                startLeft = stampEl.offsetLeft;
+                startTop = stampEl.offsetTop;
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (appState.activeFileIdx === -1) return;
+                const file = appState.queue[appState.activeFileIdx];
+                const wrapper = document.getElementById(`wrapper-page-${pageIdx}`);
+                if (!wrapper) return;
+
+                const currentScreenWidth = wrapper.offsetWidth;
+                const ratio = currentScreenWidth / pageW;
+
+                if (isDragging) {
+                    const dx = e.clientX - startX;
+                    const dy = e.clientY - startY;
+
+                    let newLeft = startLeft + dx;
+                    let newTop = startTop + dy;
+
+                    const maxLeft = currentScreenWidth - stampEl.offsetWidth;
+                    const maxTop = (pageH * ratio) - stampEl.offsetHeight;
+
+                    newLeft = Math.max(0, Math.min(newLeft, maxLeft));
+                    newTop = Math.max(0, Math.min(newTop, maxTop));
+
+                    stampEl.style.left = newLeft + 'px';
+                    stampEl.style.top = newTop + 'px';
+
+                    const x0_pdf = newLeft / ratio;
+                    const y0_pdf = newTop / ratio;
+
+                    if (appState.positionMode) {
+                        if (!appState.customCoords[file.fileId]) appState.customCoords[file.fileId] = {};
+                        if (!appState.customCoords[file.fileId][pageIdx]) {
+                            appState.customCoords[file.fileId][pageIdx] = { x0: x0_pdf, y0: y0_pdf, scale: appState.scale };
+                        } else {
+                            appState.customCoords[file.fileId][pageIdx].x0 = x0_pdf;
+                            appState.customCoords[file.fileId][pageIdx].y0 = y0_pdf;
+                        }
+                    } else {
+                        appState.globalCoords = { x0: x0_pdf, y0: y0_pdf };
+                        updateStampGeometries();
+                    }
+                } else if (isResizing) {
+                    const dx = e.clientX - startX;
+                    const newWidth = Math.max(70, Math.min(210, startWidth + dx));
+                    const newScale = (newWidth / ratio) / STAMP_BASE_WIDTH;
+                    const clampedScale = Math.max(0.5, Math.min(1.5, newScale));
+
+                    if (appState.positionMode) {
+                        if (!appState.customCoords[file.fileId]) appState.customCoords[file.fileId] = {};
+                        if (!appState.customCoords[file.fileId][pageIdx]) {
+                            const currentLeft_pdf = stampEl.offsetLeft / ratio;
+                            const currentTop_pdf = stampEl.offsetTop / ratio;
+                            appState.customCoords[file.fileId][pageIdx] = { x0: currentLeft_pdf, y0: currentTop_pdf, scale: clampedScale };
+                        } else {
+                            appState.customCoords[file.fileId][pageIdx].scale = clampedScale;
+                        }
+                        updateStampGeometries();
+                    } else {
+                        appState.scale = clampedScale;
+                        scaleRange.value = Math.round(clampedScale * 100);
+                        scaleValLabel.textContent = scaleRange.value + '%';
+                        updateStampGeometries();
+                    }
+                }
+            });
+
+            document.addEventListener('mouseup', () => {
+                isDragging = false;
+                isResizing = false;
+            });
+        }
+
+        // Atualiza tamanho e posições de todos os carimbos no PDF ativo
+        function updateStampGeometries() {
+            if (appState.activeFileIdx === -1) return;
+            const file = appState.queue[appState.activeFileIdx];
+
+            file.pages.forEach(page => {
+                const stampEl = document.getElementById(`stamp-page-${page.page_idx}`);
+                const wrapper = document.getElementById(`wrapper-page-${page.page_idx}`);
+                if (!stampEl || !wrapper) return;
+
+                const currentScreenWidth = wrapper.offsetWidth;
+                const ratio = currentScreenWidth / page.width;
+
+                let x0, y0, s;
+
+                if (appState.positionMode && appState.customCoords[file.fileId]?.[page.page_idx]) {
+                    const coords = appState.customCoords[file.fileId][page.page_idx];
+                    x0 = coords.x0;
+                    y0 = coords.y0;
+                    s = coords.scale;
+                } else if (!appState.positionMode && appState.globalCoords.x0 !== null) {
+                    x0 = appState.globalCoords.x0;
+                    y0 = appState.globalCoords.y0;
+                    s = appState.scale;
+                } else {
+                    s = appState.scale;
+                    const w_stamp = STAMP_BASE_WIDTH * s;
+                    x0 = page.width - MARGIN_RIGHT - w_stamp;
+                    y0 = MARGIN_TOP;
+                }
+
+                const screenWidth = (STAMP_BASE_WIDTH * s) * ratio;
+                const screenHeight = (STAMP_BASE_HEIGHT * s) * ratio;
+                const screenLeft = x0 * ratio;
+                const screenTop = y0 * ratio;
+
+                stampEl.style.width = screenWidth + 'px';
+                stampEl.style.height = screenHeight + 'px';
+                stampEl.style.left = screenLeft + 'px';
+                stampEl.style.top = screenTop + 'px';
+                
+                const textContainer = stampEl.querySelector('.stamp-text-container');
+                if (textContainer) {
+                    const fontSizePx = 8.0 * s * ratio;
+                    textContainer.style.fontSize = fontSizePx + 'px';
+                    
+                    const borderWidthPx = (1.2 * s * ratio) + 'px';
+                    stampEl.style.borderWidth = borderWidthPx;
+                    
+                    const row1 = textContainer.querySelector('.stamp-row-1');
+                    if (row1) {
+                        row1.style.fontSize = 'inherit';
+                        row1.style.borderBottomWidth = borderWidthPx;
+                    }
+                    const row2 = textContainer.querySelector('.stamp-row-2');
+                    if (row2) {
+                        row2.style.borderBottomWidth = borderWidthPx;
+                    }
+                    const leftCol = textContainer.querySelector('.stamp-col-left');
+                    if (leftCol) {
+                        leftCol.style.fontSize = 'inherit';
+                        leftCol.style.borderRightWidth = borderWidthPx;
+                    }
+                    const rightCol = textContainer.querySelector('.stamp-col-right');
+                    if (rightCol) {
+                        rightCol.style.fontSize = 'inherit';
+                    }
+                    const row3 = textContainer.querySelector('.stamp-row-3');
+                    if (row3) {
+                        row3.style.fontSize = 'inherit';
+                    }
+                }
+            });
+        }
+
+        // Atualiza textos internos dos carimbos ativos
+        function updateAllStampText() {
+            if (appState.queue.length === 0) return;
+            appState.queue.forEach(file => {
+                file.pagesInfo.forEach(info => {
+                    const r1 = document.getElementById(`stamp-row1-p${info.page_idx}`);
+                    const dateEl = document.getElementById(`stamp-date-p${info.page_idx}`);
+                    const leafEl = document.getElementById(`stamp-leaf-p${info.page_idx}`);
+
+                    if (r1) r1.textContent = `Processo n.º ${appState.processNumber}`;
+                    if (dateEl) dateEl.textContent = appState.startDate;
+                    if (leafEl) leafEl.textContent = `Fl.${info.leaf_number}`;
+                });
+            });
+        }
+
+        // Salvar snapshot do estado na pilha de histórico
+        function saveToHistory() {
+            const snapshot = {
+                scale: appState.scale,
+                positionMode: appState.positionMode,
+                globalCoords: { ...appState.globalCoords },
+                customCoords: JSON.parse(JSON.stringify(appState.customCoords))
+            };
+
+            undoStack.push(snapshot);
+            redoStack = [];
+            updateHistoryButtons();
+        }
+
+        // Histórico Desfazer (Undo)
+        function undo() {
+            if (undoStack.length === 0) return;
+
+            const currentGeoms = {
+                scale: appState.scale,
+                positionMode: appState.positionMode,
+                globalCoords: { ...appState.globalCoords },
+                customCoords: JSON.parse(JSON.stringify(appState.customCoords))
+            };
+            redoStack.push(currentGeoms);
+
+            const previousState = undoStack.pop();
+            applyHistoryState(previousState);
+        }
+
+        // Histórico Refazer (Redo)
+        function redo() {
+            if (redoStack.length === 0) return;
+
+            const currentGeoms = {
+                scale: appState.scale,
+                positionMode: appState.positionMode,
+                globalCoords: { ...appState.globalCoords },
+                customCoords: JSON.parse(JSON.stringify(appState.customCoords))
+            };
+            undoStack.push(currentGeoms);
+
+            const nextState = redoStack.pop();
+            applyHistoryState(nextState);
+        }
+
+        // Aplica o estado de histórico
+        function applyHistoryState(state) {
+            appState.scale = state.scale;
+            appState.positionMode = state.positionMode;
+            appState.globalCoords = state.globalCoords;
+            appState.customCoords = state.customCoords;
+
+            scaleRange.value = Math.round(appState.scale * 100);
+            scaleValLabel.textContent = scaleRange.value + '%';
+            posModeCheckbox.checked = appState.positionMode;
+
+            updateStampGeometries();
+            updateHistoryButtons();
+        }
+
+        function updateHistoryButtons() {
+            btnUndo.disabled = undoStack.length === 0;
+            btnRedo.disabled = redoStack.length === 0;
+        }
+
+        // Processamento em lote das ações rápidas (Salvar, Abrir, Imprimir)
+        async function processBatchStamps(action) {
+            if (appState.queue.length === 0) return;
+
+            btnSaveBatch.disabled = true;
+            btnOpenBatch.disabled = true;
+            btnPrintBatch.disabled = true;
+
+            const originalSaveHtml = btnSaveBatch.innerHTML;
+            const originalOpenHtml = btnOpenBatch.innerHTML;
+            const originalPrintHtml = btnPrintBatch.innerHTML;
+
+            if (action === 'save') {
+                btnSaveBatch.innerHTML = `<div class="loader-spinner" style="width:16px; height:16px; border-width:2px; margin-bottom:0; display:inline-block;"></div> Salvando...`;
+            } else if (action === 'open') {
+                btnOpenBatch.innerHTML = `<div class="loader-spinner" style="width:14px; height:14px; border-width:2px; margin-bottom:0; display:inline-block;"></div> Abrindo...`;
+            } else if (action === 'print') {
+                btnPrintBatch.innerHTML = `<div class="loader-spinner" style="width:14px; height:14px; border-width:2px; margin-bottom:0; display:inline-block;"></div> Imprimindo...`;
+            }
+
+            try {
+                for (let i = 0; i < appState.queue.length; i++) {
+                    const file = appState.queue[i];
+
+                    let global_coords = null;
+                    if (appState.globalCoords.x0 !== null) {
+                        global_coords = {
+                            x0: appState.globalCoords.x0,
+                            y0: appState.globalCoords.y0,
+                            scale: appState.scale
+                        };
+                    }
+
+                    let custom_coords = null;
+                    if (appState.positionMode && appState.customCoords[file.fileId] && Object.keys(appState.customCoords[file.fileId]).length > 0) {
+                        custom_coords = {};
+                        for (const [page_idx, c] of Object.entries(appState.customCoords[file.fileId])) {
+                            custom_coords[page_idx] = {
+                                x0: c.x0,
+                                y0: c.y0,
+                                scale: c.scale
+                            };
+                        }
+                    }
+
+                    const payload = {
+                        file_id: file.fileId,
+                        process_number: appState.processNumber,
+                        start_date: appState.startDate,
+                        start_leaf: file.startLeafCalculated,
+                        volume_limit: appState.volumeLimit,
+                        reserve_terms: appState.reserveTerms,
+                        global_coords: global_coords,
+                        custom_coords: custom_coords,
+                        active_pages: file.activePages
+                    };
+
+                    const response = await fetch('/api/stamp', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`Falha ao carimbar o arquivo ${file.filename}`);
+                    }
+
+                    const blob = await response.blob();
+                    const downloadUrl = window.URL.createObjectURL(blob);
+
+                    if (action === 'save') {
+                        const a = document.createElement('a');
+                        a.href = downloadUrl;
+                        
+                        // Sufixo _SIGFOLHA.pdf
+                        const parts = file.filename.split('.');
+                        const ext = parts.pop();
+                        const baseName = parts.join('.');
+                        a.download = `${baseName}_SIGFOLHA.${ext}`;
+                        
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        window.URL.revokeObjectURL(downloadUrl);
+                        
+                        // Pequeno atraso para o navegador gerenciar downloads múltiplos
+                        await new Promise(r => setTimeout(r, 400));
+
+                    } else if (action === 'open') {
+                        window.open(downloadUrl, '_blank');
+
+                    } else if (action === 'print') {
+                        const iframe = document.createElement('iframe');
+                        iframe.style.display = 'none';
+                        iframe.src = downloadUrl;
+                        document.body.appendChild(iframe);
+                        
+                        await new Promise(resolve => {
+                            iframe.onload = function() {
+                                iframe.contentWindow.focus();
+                                iframe.contentWindow.print();
+                                resolve();
+                                setTimeout(() => iframe.remove(), 60000);
+                            };
+                        });
+                    }
+                }
+            } catch (err) {
+                alert('Erro ao processar lote: ' + err.message);
+            } finally {
+                btnSaveBatch.disabled = false;
+                btnOpenBatch.disabled = false;
+                btnPrintBatch.disabled = false;
+                
+                btnSaveBatch.innerHTML = originalSaveHtml;
+                btnOpenBatch.innerHTML = originalOpenHtml;
+                btnPrintBatch.innerHTML = originalPrintHtml;
+            }
+        }
+    </script>
+</body>
+</html>
