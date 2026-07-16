@@ -454,25 +454,32 @@
         .grid-view {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(var(--zoom-size), 1fr));
-            gap: 32px;
+            gap: 16px; /* reduced from 32px to compensate for thick borders */
             width: 100%;
             max-width: 100%;
             align-self: stretch;
             padding-bottom: 40px;
         }
 
-        /* Container de Página */
+        /* Container de Página (White Border / Card frame) */
         .page-container {
             display: flex;
             flex-direction: column;
             gap: 10px;
             align-items: center;
             position: relative;
-            padding: 12px;
-            border-radius: 16px;
-            border: 1px solid transparent;
+            padding: 14px; /* Thick white margin around image */
+            border-radius: 12px;
+            background-color: white;
+            box-shadow: 0 4px 12px rgba(28,25,23,0.05);
+            border: 1px solid var(--border-color);
             box-sizing: border-box;
-            transition: background-color 0.2s, border-color 0.2s;
+            transition: background-color 0.2s, border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+        }
+
+        .page-container:hover {
+            box-shadow: 0 6px 18px rgba(28, 25, 23, 0.08), 0 0 0 2px rgba(228, 84, 75, 0.2);
+            border-color: rgba(228, 84, 75, 0.4);
         }
 
         .page-header-info {
@@ -515,15 +522,15 @@
         }
 
         /* Accents on page boxes */
-        .page-container.accent-start .page-wrapper {
+        .page-container.accent-start {
             border-color: #3B82F6 !important;
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25) !important;
         }
-        .page-container.accent-end .page-wrapper {
+        .page-container.accent-end {
             border-color: #6B7280 !important;
             box-shadow: 0 0 0 3px rgba(107, 114, 128, 0.25) !important;
         }
-        .page-container.accent-term .page-wrapper {
+        .page-container.accent-term {
             border-color: var(--warning) !important;
             box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.25) !important;
         }
@@ -532,17 +539,10 @@
         .page-wrapper {
             position: relative;
             background-color: white;
-            border-radius: 12px; /* Denser components use softer corners */
-            box-shadow: 0 1px 3px rgba(28,25,23,0.05);
+            border-radius: 4px; /* small rounded corners for the PDF page itself */
             overflow: hidden;
-            border: 1px solid var(--border-color);
-            transition: transform 0.2s, box-shadow 0.2s;
             cursor: default;
             user-select: none;
-        }
-
-        .page-wrapper:hover {
-            box-shadow: 0 4px 12px rgba(28,25,23,0.08), 0 0 0 2px rgba(228, 84, 75, 0.3);
         }
 
         .page-img {
@@ -798,47 +798,83 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 32px;
+            gap: 16px; /* reduced from 32px */
         }
 
         /* Alternância de PDFs no modo de Grade Completa */
         .page-container.pdf-group-odd {
-            background-color: rgba(228, 84, 75, 0.03); /* very subtle warm coral background */
-            border: 1px solid rgba(228, 84, 75, 0.08);
+            background-color: #F7F6F5; /* very subtle warm gray/cream background */
+            border-color: rgba(28, 25, 23, 0.12);
         }
         .page-container.pdf-group-even {
-            background-color: transparent;
-            border: 1px solid transparent;
+            background-color: white;
+            border-color: var(--border-color);
         }
         
-        /* Divisor vertical sutil no primeiro elemento do PDF n+1 */
-        .page-container.pdf-first-page::before {
-            content: '';
+        /* Indicador de quebra de volume (Idea A) */
+        .volume-pill-indicator {
             position: absolute;
-            left: -18px;
-            top: 12px;
-            bottom: 12px;
-            width: 4px;
-            background-color: var(--primary);
+            top: 8px;
+            right: 8px;
+            display: flex;
+            align-items: center;
+            gap: 0;
+            padding: 2px 4px;
+            background-color: #FEF3C7; /* amber background */
+            border: 1px solid #F59E0B; /* amber border */
             border-radius: 9999px;
+            overflow: hidden;
+            max-width: 8px; /* collapsed (only dot visible) */
+            height: 16px;
+            transition: max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s, gap 0.3s;
+            cursor: help;
+            box-sizing: border-box;
+            z-index: 10;
         }
-        /* No modo lista, o divisor é horizontal */
-        .grid-view.list-layout .page-container.pdf-first-page::before {
-            left: 12px;
-            right: 12px;
-            top: -18px;
-            bottom: auto;
-            width: auto;
-            height: 4px;
-            background-color: var(--primary);
-            border-radius: 9999px;
+        .volume-pill-indicator:hover {
+            max-width: 140px; /* expanded */
+            padding: 2px 8px;
+            gap: 4px;
+        }
+        .volume-pill-indicator .pill-dot {
+            width: 6px;
+            height: 6px;
+            background-color: #D97706; /* dark amber dot */
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .volume-pill-indicator .pill-text {
+            font-size: 8px;
+            font-weight: 700;
+            color: #92400E; /* dark amber text */
+            white-space: nowrap;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+        .volume-pill-indicator:hover .pill-text {
+            opacity: 1;
+            transition-delay: 0.1s;
+        }
+        
+        /* Normal State (Not Warning) */
+        .volume-pill-indicator.state-normal {
+            background-color: #ECFDF5; /* light green */
+            border-color: #10B981; /* green border */
+        }
+        .volume-pill-indicator.state-normal .pill-dot {
+            background-color: #059669;
+        }
+        .volume-pill-indicator.state-normal .pill-text {
+            color: #047857;
         }
 
         /* Estados de Inatividade do Grid */
-        .page-container.inactive .page-wrapper {
-            opacity: 0.35;
+        .page-container.inactive {
+            opacity: 0.5;
             box-shadow: none;
-            border-color: var(--border-color);
+        }
+        .page-container.inactive .page-wrapper {
+            opacity: 0.7;
         }
         .page-container.inactive .stamp-overlay {
             display: none !important;
@@ -1842,10 +1878,30 @@
                         } else {
                             container.classList.add('pdf-group-even');
                         }
-                        if (fileIdx > 0 && page.page_idx === 0) {
-                            container.classList.add('pdf-first-page');
-                        }
                         container.id = `page-container-${file.fileId}-${page.page_idx}`;
+
+                        const currentVol = (info && info.leaf_number !== null) ? Math.floor((info.leaf_number - 1) / appState.volumeLimit) + 1 : 1;
+                        const isVolStart = (info && info.leaf_number !== null && currentVol > 1 && info.leaf_number === (currentVol - 1) * appState.volumeLimit + 1);
+                        
+                        if (isVolStart) {
+                            const pill = document.createElement('div');
+                            if (appState.reserveTerms) {
+                                pill.className = 'volume-pill-indicator state-normal';
+                                pill.innerHTML = `
+                                    <span class="pill-dot"></span>
+                                    <span class="pill-text">Vol ${currentVol}</span>
+                                `;
+                                pill.title = `Início do Volume ${currentVol}. A numeração está correta e os espaços para os termos de abertura e encerramento foram devidamente reservados.`;
+                            } else {
+                                pill.className = 'volume-pill-indicator state-warning';
+                                pill.innerHTML = `
+                                    <span class="pill-dot"></span>
+                                    <span class="pill-text">⚠️ Vol ${currentVol}</span>
+                                `;
+                                pill.title = `Atenção: Início do Volume ${currentVol}. Como a opção 'Pular folhas para termo' está desativada, os termos de abertura/encerramento físicos inseridos posteriormente causarão um descompasso de +2 páginas, tornando a numeração destas folhas incorreta.`;
+                            }
+                            container.appendChild(pill);
+                        }
 
                         // Header
                         const header = document.createElement('div');
@@ -1969,6 +2025,29 @@
                         container.classList.add('accent-term');
                     }
                     container.id = `page-container-${file.fileId}-${page.page_idx}`;
+
+                    const currentVol = (info && info.leaf_number !== null) ? Math.floor((info.leaf_number - 1) / appState.volumeLimit) + 1 : 1;
+                    const isVolStart = (info && info.leaf_number !== null && currentVol > 1 && info.leaf_number === (currentVol - 1) * appState.volumeLimit + 1);
+                    
+                    if (isVolStart) {
+                        const pill = document.createElement('div');
+                        if (appState.reserveTerms) {
+                            pill.className = 'volume-pill-indicator state-normal';
+                            pill.innerHTML = `
+                                <span class="pill-dot"></span>
+                                <span class="pill-text">Vol ${currentVol}</span>
+                            `;
+                            pill.title = `Início do Volume ${currentVol}. A numeração está correta e os espaços para os termos de abertura e encerramento foram devidamente reservados.`;
+                        } else {
+                            pill.className = 'volume-pill-indicator state-warning';
+                            pill.innerHTML = `
+                                <span class="pill-dot"></span>
+                                <span class="pill-text">⚠️ Vol ${currentVol}</span>
+                            `;
+                            pill.title = `Atenção: Início do Volume ${currentVol}. Como a opção 'Pular folhas para termo' está desativada, os termos de abertura/encerramento físicos inseridos posteriormente causarão um descompasso de +2 páginas, tornando a numeração destas folhas incorreta.`;
+                        }
+                        container.appendChild(pill);
+                    }
 
                     // Header
                     const header = document.createElement('div');

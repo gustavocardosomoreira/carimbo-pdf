@@ -23,7 +23,8 @@ def test_serve_frontend():
     assert response.status_code == 200
     assert "SIGFolha" in response.text
     assert "btn-view-all-grid" in response.text
-    assert "pdf-first-page" in response.text
+    assert "volume-pill-indicator" in response.text
+    assert "pdf-group-odd" in response.text
 
 def test_api_upload_and_preview(dummy_pdf):
     # Enviar o PDF simulado para o endpoint de upload
