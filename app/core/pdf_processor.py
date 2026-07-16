@@ -142,17 +142,20 @@ def draw_vector_stamp(
     y_line2 = y0 + 38.0 * scale
     x_split = x0 + 102.0 * scale
     
+    # Matriz de derotação para converter coordenadas visuais para o espaço físico da página
+    derot = page.derotation_matrix
+    
     shape = page.new_shape()
     
     # Retângulo externo
-    shape.draw_rect(fitz.Rect(x0, y0, x1, y1))
+    shape.draw_rect(fitz.Rect(x0, y0, x1, y1) * derot)
     
     # Divisórias horizontais
-    shape.draw_line(fitz.Point(x0, y_line1), fitz.Point(x1, y_line1))
-    shape.draw_line(fitz.Point(x0, y_line2), fitz.Point(x1, y_line2))
+    shape.draw_line(fitz.Point(x0, y_line1) * derot, fitz.Point(x1, y_line1) * derot)
+    shape.draw_line(fitz.Point(x0, y_line2) * derot, fitz.Point(x1, y_line2) * derot)
     
     # Divisória vertical do meio (split 68/32)
-    shape.draw_line(fitz.Point(x_split, y_line1), fitz.Point(x_split, y_line2))
+    shape.draw_line(fitz.Point(x_split, y_line1) * derot, fitz.Point(x_split, y_line2) * derot)
     
     # Contorno preto com espessura uniforme 1.2 pt escalada
     stroke_width = 1.2 * scale
@@ -177,25 +180,27 @@ def draw_vector_stamp(
     left_padding = 6.0 * scale
     px = x0 + left_padding
     py = y0 + 11.5 * scale
-    shape.insert_text(fitz.Point(px, py), process_text, fontname=font_name, fontfile=font_file, fontsize=font_size, color=(0, 0, 0))
+    shape.insert_text(fitz.Point(px, py) * derot, process_text, fontname=font_name, fontfile=font_file, fontsize=font_size, color=(0, 0, 0), rotate=page.rotation)
     
     # Linha 2 (Esquerda): Data do início
     left_padding = 6.0 * scale
     shape.insert_text(
-        fitz.Point(x0 + left_padding, y0 + 24.5 * scale),
+        (fitz.Point(x0 + left_padding, y0 + 24.5 * scale)) * derot,
         "Data do início:",
         fontname=font_name,
         fontfile=font_file,
         fontsize=font_size,
-        color=(0, 0, 0)
+        color=(0, 0, 0),
+        rotate=page.rotation
     )
     shape.insert_text(
-        fitz.Point(x0 + left_padding, y0 + 34.5 * scale),
+        (fitz.Point(x0 + left_padding, y0 + 34.5 * scale)) * derot,
         start_date,
         fontname=font_name,
         fontfile=font_file,
         fontsize=font_size,
-        color=(0, 0, 0)
+        color=(0, 0, 0),
+        rotate=page.rotation
     )
     
     # Linha 2 (Direita): Fl. (Sem espaço antes do número: Fl.18)
@@ -208,16 +213,17 @@ def draw_vector_stamp(
     fl_cell_w = x1 - x_split
     fl_x = x_split + (fl_cell_w - fl_w) / 2
     fl_y = y0 + 29.5 * scale
-    shape.insert_text(fitz.Point(fl_x, fl_y), fl_text, fontname=font_name, fontfile=font_file, fontsize=font_size, color=(0, 0, 0))
+    shape.insert_text(fitz.Point(fl_x, fl_y) * derot, fl_text, fontname=font_name, fontfile=font_file, fontsize=font_size, color=(0, 0, 0), rotate=page.rotation)
     
     # Linha 3: Rubrica
     shape.insert_text(
-        fitz.Point(x0 + left_padding, y0 + 47.0 * scale),
+        (fitz.Point(x0 + left_padding, y0 + 47.0 * scale)) * derot,
         "Rubrica",
         fontname=font_name,
         fontfile=font_file,
         fontsize=font_size,
-        color=(0, 0, 0)
+        color=(0, 0, 0),
+        rotate=page.rotation
     )
     
     shape.commit()
@@ -270,6 +276,10 @@ def process_pdf_stamping(
                 x0 = global_coords.get("x0")
                 y0 = global_coords.get("y0")
                 scale = global_coords.get("scale", 1.0)
+                ref_width = global_coords.get("ref_width")
+                if ref_width is not None and ref_width > 0:
+                    right_offset = ref_width - x0
+                    x0 = page_width - right_offset
             else:
                 # Posicionamento padrão: Canto superior direito
                 w = 150.0 * scale

@@ -247,3 +247,106 @@ def test_process_pdf_stamping_mixed_coords(sample_pdf):
         out_doc = fitz.open(output_path)
         assert len(out_doc) == 3
         out_doc.close()
+
+
+def test_process_pdf_stamping_on_rotated_page():
+    from app.core.pdf_processor import process_pdf_stamping
+    import tempfile
+    
+    with tempfile.TemporaryDirectory() as tmpdir:
+        pdf_path = os.path.join(tmpdir, "rotated_input.pdf")
+        output_path = os.path.join(tmpdir, "rotated_output.pdf")
+        
+        # Create a PDF with a rotated page (90 degrees rotation)
+        doc = fitz.open()
+        page = doc.new_page(width=595, height=842) # A4 Portrait
+        page.set_rotation(90) # Becomes Landscape visually (width 842, height 595)
+        doc.save(pdf_path)
+        doc.close()
+        
+        # We stamp the page at visual coordinate (600, 20) with scale 1.0
+        pages_info, has_break, break_msg = process_pdf_stamping(
+            input_pdf_path=pdf_path,
+            output_pdf_path=output_path,
+            process_number="9557/2026",
+            start_date="21/05/2026",
+            start_leaf=18,
+            volume_limit=200,
+            reserve_terms=True,
+            global_coords={"x0": 600.0, "y0": 20.0, "scale": 1.0}
+        )
+        
+        assert os.path.exists(output_path)
+        
+        # Verify the stamped coordinates in the output file
+        out_doc = fitz.open(output_path)
+        out_page = out_doc[0]
+        
+        # Extract drawings or text to confirm correct unrotated coordinates
+        drawings = out_page.get_drawings()
+        # The drawing coordinates should be in the unrotated system:
+        # Visual Rect(600, 20, 750, 80) derotated by Matrix(0, -1, 1, 0, -0, 842)
+        # becomes Rect(20, 92, 80, 242) in unrotated space
+        assert len(drawings) > 0
+        
+        # Verify unrotated text location and orientation
+        text_page = out_page.get_text("dict")
+        found_text = False
+        for block in text_page["blocks"]:
+            if "lines" in block:
+                for line in block["lines"]:
+                    # Since page rotation is 90, the text was inserted with rotate=90.
+                    # Dir Vector in unrotated space should be (0.0, -1.0)
+                    for span in line["spans"]:
+                        if "Processo" in span["text"]:
+                            found_text = True
+                            assert line["dir"] == (0.0, -1.0)
+        assert found_text
+        out_doc.close()
+
+
+def test_process_pdf_stamping_global_ref_width():
+    from app.core.pdf_processor import process_pdf_stamping
+    import tempfile
+    
+    with tempfile.TemporaryDirectory() as tmpdir:
+        pdf_path = os.path.join(tmpdir, "mixed_input.pdf")
+        output_path = os.path.join(tmpdir, "mixed_output.pdf")
+        
+        # Create a PDF with 2 pages: 1 portrait (595x842), 1 landscape (842x595)
+        doc = fitz.open()
+        p0 = doc.new_page(width=595, height=842) # Portrait
+        p1 = doc.new_page(width=842, height=595) # Landscape
+        doc.save(pdf_path)
+        doc.close()
+        
+        # We stamp globally. The user dragged on portrait page (width 595) to x0=425 (which is 170 from right).
+        # We expect that on page 0 (portrait), it stamps at x0=425.
+        # On page 1 (landscape, width 842), it stamps at x0=842 - 170 = 672.
+        pages_info, has_break, break_msg = process_pdf_stamping(
+            input_pdf_path=pdf_path,
+            output_pdf_path=output_path,
+            process_number="9557/2026",
+            start_date="21/05/2026",
+            start_leaf=18,
+            volume_limit=200,
+            reserve_terms=True,
+            global_coords={"x0": 425.0, "y0": 20.0, "scale": 1.0, "ref_width": 595.0, "ref_height": 842.0}
+        )
+        
+        assert os.path.exists(output_path)
+        out_doc = fitz.open(output_path)
+        
+        # Page 0 (Portrait): drawing x0 should be 425
+        drawings_p0 = out_doc[0].get_drawings()
+        assert len(drawings_p0) > 0
+        rect_p0 = drawings_p0[0]["rect"]
+        assert abs(rect_p0.x0 - 425.0) < 1e-2
+        
+        # Page 1 (Landscape): drawing x0 should be 672.0
+        drawings_p1 = out_doc[1].get_drawings()
+        assert len(drawings_p1) > 0
+        rect_p1 = drawings_p1[0]["rect"]
+        assert abs(rect_p1.x0 - 672.0) < 1e-2
+        
+        out_doc.close()

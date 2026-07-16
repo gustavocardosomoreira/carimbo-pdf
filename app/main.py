@@ -36,6 +36,8 @@ class StampCoords(BaseModel):
     x0: float
     y0: float
     scale: float
+    ref_width: Optional[float] = None
+    ref_height: Optional[float] = None
 
 class StampRequest(BaseModel):
     file_id: str

@@ -318,6 +318,10 @@
             font-size: 16px;
             font-weight: 600;
             color: var(--text-primary);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 350px;
         }
 
         .history-controls {
@@ -874,7 +878,7 @@
         }
         .zoom-slider-container input[type="range"] {
             height: 4px;
-            width: 80px;
+            width: 104px;
             background: #E7E6E5;
             accent-color: var(--primary);
             cursor: pointer;
@@ -1092,7 +1096,7 @@
             // Geometria
             scale: 1.0,
             positionMode: false, // false = Global, true = Customizado por página
-            globalCoords: { x0: null, y0: null },
+            globalCoords: { x0: null, y0: null, refWidth: null, refHeight: null },
             customCoords: {} // Mapeamento de fileId: { page_idx: {x0, y0, scale} }
         };
 
@@ -1373,7 +1377,7 @@
         function resetToEmptyState() {
             appState.queue = [];
             appState.activeFileIdx = -1;
-            appState.globalCoords = { x0: null, y0: null };
+            appState.globalCoords = { x0: null, y0: null, refWidth: null, refHeight: null };
             appState.customCoords = {};
             
             documentTitle.textContent = "Nenhum documento carregado";
@@ -1963,7 +1967,7 @@
                             appState.customCoords[file.fileId][pageIdx].y0 = y0_pdf;
                         }
                     } else {
-                        appState.globalCoords = { x0: x0_pdf, y0: y0_pdf };
+                        appState.globalCoords = { x0: x0_pdf, y0: y0_pdf, refWidth: pageW, refHeight: pageH };
                         updateStampGeometries();
                     }
                 } else if (isResizing) {
@@ -2018,8 +2022,14 @@
                     y0 = coords.y0;
                     s = coords.scale;
                 } else if (appState.globalCoords.x0 !== null) {
-                    x0 = appState.globalCoords.x0;
-                    y0 = appState.globalCoords.y0;
+                    const g = appState.globalCoords;
+                    if (g.refWidth && g.refWidth > 0) {
+                        const right_offset = g.refWidth - g.x0;
+                        x0 = page.width - right_offset;
+                    } else {
+                        x0 = g.x0;
+                    }
+                    y0 = g.y0;
                     s = appState.scale;
                 } else {
                     s = appState.scale;
@@ -2074,17 +2084,16 @@
 
         // Atualiza textos internos dos carimbos ativos
         function updateAllStampText() {
-            if (appState.queue.length === 0) return;
-            appState.queue.forEach(file => {
-                file.pagesInfo.forEach(info => {
-                    const r1 = document.getElementById(`stamp-row1-p${info.page_idx}`);
-                    const dateEl = document.getElementById(`stamp-date-p${info.page_idx}`);
-                    const leafEl = document.getElementById(`stamp-leaf-p${info.page_idx}`);
+            if (appState.activeFileIdx === -1) return;
+            const file = appState.queue[appState.activeFileIdx];
+            file.pagesInfo.forEach(info => {
+                const r1 = document.getElementById(`stamp-row1-p${info.page_idx}`);
+                const dateEl = document.getElementById(`stamp-date-p${info.page_idx}`);
+                const leafEl = document.getElementById(`stamp-leaf-p${info.page_idx}`);
 
-                    if (r1) r1.textContent = `Processo n.º ${appState.processNumber}`;
-                    if (dateEl) dateEl.textContent = appState.startDate;
-                    if (leafEl) leafEl.textContent = `Fl.${info.leaf_number}`;
-                });
+                if (r1) r1.textContent = `Processo n.º ${appState.processNumber}`;
+                if (dateEl) dateEl.textContent = appState.startDate;
+                if (leafEl) leafEl.textContent = `Fl.${info.leaf_number}`;
             });
         }
 
@@ -2154,6 +2163,22 @@
             btnRedo.disabled = redoStack.length === 0;
         }
 
+        // Sanitiza e trunca nomes de arquivo muito longos para evitar falhas de download no Windows (MAX_PATH)
+        function sanitizeAndTruncateFilename(filename, maxBaseLen = 60) {
+            const parts = filename.split('.');
+            let ext = parts.pop() || 'pdf';
+            let baseName = parts.join('.');
+            
+            // Substitui caracteres inválidos por underline
+            baseName = baseName.replace(/[^a-zA-Z0-9_\-\.]/g, '_');
+            ext = ext.replace(/[^a-zA-Z0-9]/g, '');
+            
+            if (baseName.length > maxBaseLen) {
+                baseName = baseName.substring(0, maxBaseLen);
+            }
+            return { baseName, ext };
+        }
+
         // Processamento em lote das ações rápidas (Salvar, Abrir, Imprimir)
         async function processBatchStamps(action) {
             if (appState.queue.length === 0) return;
@@ -2183,7 +2208,9 @@
                         global_coords = {
                             x0: appState.globalCoords.x0,
                             y0: appState.globalCoords.y0,
-                            scale: appState.scale
+                            scale: appState.scale,
+                            ref_width: appState.globalCoords.refWidth,
+                            ref_height: appState.globalCoords.refHeight
                         };
                     }
 
@@ -2231,9 +2258,7 @@
                         a.href = downloadUrl;
                         
                         // Sufixo _SIGFOLHA.pdf
-                        const parts = file.filename.split('.');
-                        const ext = parts.pop();
-                        const baseName = parts.join('.');
+                        const { baseName, ext } = sanitizeAndTruncateFilename(file.filename, 60);
                         a.download = `${baseName}_SIGFOLHA.${ext}`;
                         
                         document.body.appendChild(a);
