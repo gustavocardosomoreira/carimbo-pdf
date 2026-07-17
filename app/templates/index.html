@@ -1816,9 +1816,16 @@
                         containerEl.classList.remove('accent-start', 'accent-end', 'accent-term');
                         let tooltipEl = containerEl.querySelector('.custom-tooltip');
                         
+                        // Garante que o tooltip exista para todos os containers de página
+                        if (!tooltipEl) {
+                            tooltipEl = document.createElement('div');
+                            tooltipEl.className = 'custom-tooltip';
+                            containerEl.appendChild(tooltipEl);
+                        }
+
                         if (!info.is_active) {
                             containerEl.classList.add('inactive');
-                            if (tooltipEl) tooltipEl.remove();
+                            tooltipEl.innerHTML = `<strong>Página Inativa</strong><br><span style="font-size: 9px; opacity: 0.7;">Página ${info.page_idx + 1} (Sem carimbo)</span>`;
                         } else {
                             containerEl.classList.remove('inactive');
                             // Check if it is a Termo (reserveTerms is active) or an affected boundary page (reserveTerms is inactive)
@@ -1841,15 +1848,10 @@
                                 }
                             }
 
+                            const currentVol = Math.floor((info.leaf_number - 1) / appState.volumeLimit) + 1;
+
                             if (isAffected) {
                                 containerEl.classList.add('accent-term');
-                                const currentVol = Math.floor((info.leaf_number - 1) / appState.volumeLimit) + 1;
-                                
-                                if (!tooltipEl) {
-                                    tooltipEl = document.createElement('div');
-                                    tooltipEl.className = 'custom-tooltip';
-                                    containerEl.appendChild(tooltipEl);
-                                }
                                 
                                 if (boundaryType === 'term') {
                                     const isAbertura = info.leaf_number % appState.volumeLimit === 1;
@@ -1859,12 +1861,13 @@
                                         tooltipEl.innerHTML = `<strong>Termo de Encerramento</strong><br>Volume ${currentVol - 1}. Espaço reservado e numeração correta.`;
                                     }
                                 } else if (boundaryType === 'start') {
-                                    tooltipEl.innerHTML = `<strong>Aviso de Quebra de Volume!</strong><br>Início do Volume ${currentVol}. Como a opção 'Pular folhas para termo' está DESATIVADA, a inserção física dos termos causará um descompasso de +2 páginas nesta numeração.`;
+                                    tooltipEl.innerHTML = `<strong>Folha ${info.leaf_number}</strong><hr style="border-top: 1px solid rgba(255,255,255,0.15); margin: 6px 0;"><span style="color: #F59E0B; font-weight: 700;">⚠️ Início do Volume ${currentVol}</span><br><span style="font-size: 9px; opacity: 0.8;">A inserção dos termos causará descompasso de +2.</span>`;
                                 } else if (boundaryType === 'end') {
-                                    tooltipEl.innerHTML = `<strong>Aviso de Quebra de Volume!</strong><br>Fim do Volume ${currentVol}. Limite de ${appState.volumeLimit} folhas atingido.`;
+                                    tooltipEl.innerHTML = `<strong>Folha ${info.leaf_number}</strong><hr style="border-top: 1px solid rgba(255,255,255,0.15); margin: 6px 0;"><span style="color: #F59E0B; font-weight: 700;">⚠️ Fim do Volume ${currentVol}</span><br><span style="font-size: 9px; opacity: 0.8;">Limite de ${appState.volumeLimit} folhas atingido.</span>`;
                                 }
                             } else {
-                                if (tooltipEl) tooltipEl.remove();
+                                // Página ativa normal (mostra o número do carimbo e da página original)
+                                tooltipEl.innerHTML = `<strong>Folha ${info.leaf_number}</strong><br><span style="font-size: 9px; opacity: 0.7;">Página ${info.page_idx + 1}</span>`;
                             }
                         }
                     }
