@@ -16,7 +16,8 @@ O design visual do sistema segue o mockup abaixo (salvo no repositório):
 
 ## 🚀 Funcionalidades Principais
 
-*   **Processamento em Lote (Batch):** Envio simultâneo de múltiplos PDFs com mesclagem e numeração contínua automática de ponta a ponta na fila.
+*   **Processamento em Lote (Batch):** Envio simultâneo de múltiplos PDFs com mesclagem e numeração contínua automática de ponta a ponta na fila. Possui um seletor de visualização dedicado para alternar entre a grade do PDF ativo ou a **Grade Completa do Lote** (todas as páginas de todos os PDFs simultaneamente).
+*   **Diferenciação de Documentos na Grade:** Na grade completa do lote, as páginas de diferentes PDFs são diferenciadas sutilmente através de bordas e sombras alternadas (cinza neutro para PDFs de índice par, e coral/vermelho para PDFs de índice ímpar) diretamente nas páginas, sem poluir a interface ou interferir com as margens reais do documento.
 *   **Reordenação por Arrasto:** Painel esquerdo interativo que permite reordenar os arquivos na fila por drag-and-drop.
 *   **Seleção de Intervalos de Página:** Controle granular por arquivo (ex: "Todos", "1-5", "2, 4, 6-10") para carimbar apenas as páginas necessárias.
 *   **Carimbo Vetorial Century Gothic:**
@@ -29,6 +30,10 @@ O design visual do sistema segue o mockup abaixo (salvo no repositório):
     *   Pula automaticamente a inserção do carimbo nas páginas de termos de abertura/encerramento (múltiplos do limite de volume, ex: 200, 400 e múltiplos + 1, ex: 201, 401).
     *   A sequência numérica pula essas páginas de forma inteligente (ex: pág. 199 -> pula 200 e 201 -> pág. 202).
     *   Avisos visuais na tela são exibidos imediatamente caso a numeração atinja ou exceda limites de quebras de volume.
+*   **Indicador Visual de Quebra de Volume (Pill Expandível):** Exibição de um pequeno ponto/pill interativo no canto superior direito da página onde inicia um novo volume. Ao passar o mouse, ele expande mostrando o volume correspondente e um aviso de tooltip explicativo:
+    *   *Verde (Vol X):* Indica que os termos estão ativados e reservados corretamente.
+    *   *Laranja/Alerta (⚠️ Vol X):* Alerta que o limite foi atingido sem reserva de termos, explicando o possível erro/descompasso na numeração subsequente.
+*   **Controle de Zoom Ampliado:** Slider de zoom na barra superior redimensionado para 200px para permitir maior precisão ao arrastar e ajustar o tamanho das miniaturas.
 *   **Interface Interativa com Desfazer/Refazer (Undo/Redo):**
     *   Permite arrastar o carimbo em tempo real e redimensioná-lo puxando os cantos da caixa com o mouse (ajustando a escala proporcional de forma visual).
     *   Suporta modo **Global** (todas as páginas juntas) ou **Customizado** (ajuste por página).
