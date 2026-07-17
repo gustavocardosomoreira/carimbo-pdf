@@ -461,25 +461,13 @@
             padding-bottom: 40px;
         }
 
-        /* Container de Página (White Border / Card frame) */
+        /* Container de Página */
         .page-container {
             display: flex;
             flex-direction: column;
             gap: 10px;
             align-items: center;
             position: relative;
-            padding: 14px; /* Thick white margin around image */
-            border-radius: 12px;
-            background-color: white;
-            box-shadow: 0 4px 12px rgba(28,25,23,0.05);
-            border: 1px solid var(--border-color);
-            box-sizing: border-box;
-            transition: background-color 0.2s, border-color 0.2s, box-shadow 0.2s, transform 0.2s;
-        }
-
-        .page-container:hover {
-            box-shadow: 0 6px 18px rgba(28, 25, 23, 0.08), 0 0 0 2px rgba(228, 84, 75, 0.2);
-            border-color: rgba(228, 84, 75, 0.4);
         }
 
         .page-header-info {
@@ -522,15 +510,15 @@
         }
 
         /* Accents on page boxes */
-        .page-container.accent-start {
+        .page-container.accent-start .page-wrapper {
             border-color: #3B82F6 !important;
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25) !important;
         }
-        .page-container.accent-end {
+        .page-container.accent-end .page-wrapper {
             border-color: #6B7280 !important;
             box-shadow: 0 0 0 3px rgba(107, 114, 128, 0.25) !important;
         }
-        .page-container.accent-term {
+        .page-container.accent-term .page-wrapper {
             border-color: var(--warning) !important;
             box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.25) !important;
         }
@@ -539,10 +527,18 @@
         .page-wrapper {
             position: relative;
             background-color: white;
-            border-radius: 4px; /* small rounded corners for the PDF page itself */
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(28,25,23,0.05);
             overflow: hidden;
+            border: 1px solid var(--border-color);
+            transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
             cursor: default;
             user-select: none;
+        }
+
+        .page-wrapper:hover {
+            box-shadow: 0 6px 18px rgba(228, 84, 75, 0.12), 0 0 0 2px rgba(228, 84, 75, 0.3);
+            border-color: rgba(228, 84, 75, 0.4);
         }
 
         .page-img {
@@ -802,13 +798,14 @@
         }
 
         /* Alternância de PDFs no modo de Grade Completa */
-        .page-container.pdf-group-odd {
-            background-color: #F7F6F5; /* very subtle warm gray/cream background */
-            border-color: rgba(28, 25, 23, 0.12);
+        /* Alternância de PDFs no modo de Grade Completa */
+        .page-container.pdf-group-odd .page-wrapper {
+            border-color: rgba(228, 84, 75, 0.4); /* subtle warm coral/red border */
+            box-shadow: 0 4px 12px rgba(228, 84, 75, 0.08); /* subtle warm shadow */
         }
-        .page-container.pdf-group-even {
-            background-color: white;
+        .page-container.pdf-group-even .page-wrapper {
             border-color: var(--border-color);
+            box-shadow: 0 4px 12px rgba(28,25,23,0.05);
         }
         
         /* Indicador de quebra de volume (Idea A) */
@@ -870,11 +867,10 @@
 
         /* Estados de Inatividade do Grid */
         .page-container.inactive {
-            opacity: 0.5;
-            box-shadow: none;
+            opacity: 0.4;
         }
         .page-container.inactive .page-wrapper {
-            opacity: 0.7;
+            box-shadow: none !important;
         }
         .page-container.inactive .stamp-overlay {
             display: none !important;
@@ -1882,26 +1878,6 @@
 
                         const currentVol = (info && info.leaf_number !== null) ? Math.floor((info.leaf_number - 1) / appState.volumeLimit) + 1 : 1;
                         const isVolStart = (info && info.leaf_number !== null && currentVol > 1 && info.leaf_number === (currentVol - 1) * appState.volumeLimit + 1);
-                        
-                        if (isVolStart) {
-                            const pill = document.createElement('div');
-                            if (appState.reserveTerms) {
-                                pill.className = 'volume-pill-indicator state-normal';
-                                pill.innerHTML = `
-                                    <span class="pill-dot"></span>
-                                    <span class="pill-text">Vol ${currentVol}</span>
-                                `;
-                                pill.title = `Início do Volume ${currentVol}. A numeração está correta e os espaços para os termos de abertura e encerramento foram devidamente reservados.`;
-                            } else {
-                                pill.className = 'volume-pill-indicator state-warning';
-                                pill.innerHTML = `
-                                    <span class="pill-dot"></span>
-                                    <span class="pill-text">⚠️ Vol ${currentVol}</span>
-                                `;
-                                pill.title = `Atenção: Início do Volume ${currentVol}. Como a opção 'Pular folhas para termo' está desativada, os termos de abertura/encerramento físicos inseridos posteriormente causarão um descompasso de +2 páginas, tornando a numeração destas folhas incorreta.`;
-                            }
-                            container.appendChild(pill);
-                        }
 
                         // Header
                         const header = document.createElement('div');
@@ -1924,6 +1900,26 @@
                         
                         const ratio = zoomValNum / page.width;
                         wrapper.style.height = (page.height * ratio) + 'px';
+
+                        if (isVolStart) {
+                            const pill = document.createElement('div');
+                            if (appState.reserveTerms) {
+                                pill.className = 'volume-pill-indicator state-normal';
+                                pill.innerHTML = `
+                                    <span class="pill-dot"></span>
+                                    <span class="pill-text">Vol ${currentVol}</span>
+                                `;
+                                pill.title = `Início do Volume ${currentVol}. A numeração está correta e os espaços para os termos de abertura e encerramento foram devidamente reservados.`;
+                            } else {
+                                pill.className = 'volume-pill-indicator state-warning';
+                                pill.innerHTML = `
+                                    <span class="pill-dot"></span>
+                                    <span class="pill-text">⚠️ Vol ${currentVol}</span>
+                                `;
+                                pill.title = `Atenção: Início do Volume ${currentVol}. Como a opção 'Pular folhas para termo' está desativada, os termos de abertura/encerramento físicos inseridos posteriormente causarão um descompasso de +2 páginas, tornando a numeração destas folhas incorreta.`;
+                            }
+                            wrapper.appendChild(pill);
+                        }
 
                         if (isTerm) {
                             // Render Term spacer card inner contents
@@ -2028,26 +2024,6 @@
 
                     const currentVol = (info && info.leaf_number !== null) ? Math.floor((info.leaf_number - 1) / appState.volumeLimit) + 1 : 1;
                     const isVolStart = (info && info.leaf_number !== null && currentVol > 1 && info.leaf_number === (currentVol - 1) * appState.volumeLimit + 1);
-                    
-                    if (isVolStart) {
-                        const pill = document.createElement('div');
-                        if (appState.reserveTerms) {
-                            pill.className = 'volume-pill-indicator state-normal';
-                            pill.innerHTML = `
-                                <span class="pill-dot"></span>
-                                <span class="pill-text">Vol ${currentVol}</span>
-                            `;
-                            pill.title = `Início do Volume ${currentVol}. A numeração está correta e os espaços para os termos de abertura e encerramento foram devidamente reservados.`;
-                        } else {
-                            pill.className = 'volume-pill-indicator state-warning';
-                            pill.innerHTML = `
-                                <span class="pill-dot"></span>
-                                <span class="pill-text">⚠️ Vol ${currentVol}</span>
-                            `;
-                            pill.title = `Atenção: Início do Volume ${currentVol}. Como a opção 'Pular folhas para termo' está desativada, os termos de abertura/encerramento físicos inseridos posteriormente causarão um descompasso de +2 páginas, tornando a numeração destas folhas incorreta.`;
-                        }
-                        container.appendChild(pill);
-                    }
 
                     // Header
                     const header = document.createElement('div');
@@ -2070,6 +2046,26 @@
                     
                     const ratio = zoomValNum / page.width;
                     wrapper.style.height = (page.height * ratio) + 'px';
+
+                    if (isVolStart) {
+                        const pill = document.createElement('div');
+                        if (appState.reserveTerms) {
+                            pill.className = 'volume-pill-indicator state-normal';
+                            pill.innerHTML = `
+                                <span class="pill-dot"></span>
+                                <span class="pill-text">Vol ${currentVol}</span>
+                            `;
+                            pill.title = `Início do Volume ${currentVol}. A numeração está correta e os espaços para os termos de abertura e encerramento foram devidamente reservados.`;
+                        } else {
+                            pill.className = 'volume-pill-indicator state-warning';
+                            pill.innerHTML = `
+                                <span class="pill-dot"></span>
+                                <span class="pill-text">⚠️ Vol ${currentVol}</span>
+                            `;
+                            pill.title = `Atenção: Início do Volume ${currentVol}. Como a opção 'Pular folhas para termo' está desativada, os termos de abertura/encerramento físicos inseridos posteriormente causarão um descompasso de +2 páginas, tornando a numeração destas folhas incorreta.`;
+                        }
+                        wrapper.appendChild(pill);
+                    }
 
                     if (isTerm) {
                         // Render Term spacer card inner contents
