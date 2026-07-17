@@ -426,6 +426,14 @@
             width: 100%;
             max-width: 1000px;
             margin-bottom: 24px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .volume-alert-container:hover {
+            transform: translateY(-2px);
+        }
+        .volume-alert-container:active {
+            transform: translateY(0);
         }
 
         .volume-alert {
@@ -521,6 +529,64 @@
         .page-container.accent-term .page-wrapper {
             border-color: var(--warning) !important;
             box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.25) !important;
+        }
+
+        /* Tooltip customizado premium */
+        .custom-tooltip {
+            visibility: hidden;
+            position: absolute;
+            bottom: 102%;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #1E293B; /* slate-800 */
+            color: #F8FAFC; /* slate-50 */
+            font-size: 10px;
+            font-weight: 500;
+            padding: 8px 12px;
+            border-radius: 6px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            width: 200px;
+            text-align: center;
+            opacity: 0;
+            transition: opacity 0.15s ease-in-out, transform 0.15s ease-in-out;
+            pointer-events: none;
+            line-height: 1.4;
+        }
+        /* Triângulo para apontar o tooltip */
+        .custom-tooltip::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: #1E293B transparent transparent transparent;
+        }
+        /* Mostrar tooltip no hover */
+        .page-container:hover .custom-tooltip {
+            visibility: visible;
+            opacity: 1;
+            transform: translateX(-50%) translateY(-4px);
+        }
+
+        /* Animação de pulsar para destaque de alertas de volume */
+        @keyframes blink-accent {
+            0%, 100% {
+                border-color: var(--warning) !important;
+                box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.25) !important;
+                transform: scale(1);
+            }
+            50% {
+                border-color: #EF4444 !important; /* vermelho vibrante */
+                box-shadow: 0 0 0 8px rgba(239, 68, 68, 0.5), 0 0 20px rgba(239, 68, 68, 0.8) !important;
+                transform: scale(1.05);
+            }
+        }
+        .page-wrapper.blink-active {
+            animation: blink-accent 0.5s ease-in-out 3;
+            z-index: 10;
         }
 
         /* Wrapper da Imagem do PDF e Carimbo */
@@ -996,7 +1062,7 @@
             </button>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px;">
                 <button class="btn" id="btn-open-batch" disabled style="background-color: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-color); font-size: 13px; padding: 10px;">
-                    🔍 Salvar e Abrir
+                    🔍 Abrir
                 </button>
                 <button class="btn" id="btn-print-batch" disabled style="background-color: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-color); font-size: 13px; padding: 10px;">
                     🖨️ Imprimir
@@ -1314,6 +1380,26 @@
         btnSaveBatch.addEventListener('click', () => processBatchStamps('save'));
         btnOpenBatch.addEventListener('click', () => processBatchStamps('open'));
         btnPrintBatch.addEventListener('click', () => processBatchStamps('print'));
+
+        // Clique no alerta de volume rola até as páginas afetadas e as faz piscar
+        volumeAlertContainer.addEventListener('click', () => {
+            const accented = Array.from(document.querySelectorAll('.page-container.accent-term'));
+            if (accented.length === 0) return;
+
+            accented[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+            accented.forEach(el => {
+                const wrapper = el.querySelector('.page-wrapper');
+                if (wrapper) {
+                    wrapper.classList.remove('blink-active');
+                    void wrapper.offsetWidth; // Força reflow do navegador
+                    wrapper.classList.add('blink-active');
+                    setTimeout(() => {
+                        wrapper.classList.remove('blink-active');
+                    }, 1500);
+                }
+            });
+        });
 
         // Função de troca de abas da Sidebar
         function switchSidebarTab(tab) {
@@ -1728,9 +1814,11 @@
 
                     if (containerEl) {
                         containerEl.classList.remove('accent-start', 'accent-end', 'accent-term');
+                        let tooltipEl = containerEl.querySelector('.custom-tooltip');
+                        
                         if (!info.is_active) {
                             containerEl.classList.add('inactive');
-                            containerEl.removeAttribute('title');
+                            if (tooltipEl) tooltipEl.remove();
                         } else {
                             containerEl.classList.remove('inactive');
                             // Check if it is a Termo (reserveTerms is active) or an affected boundary page (reserveTerms is inactive)
@@ -1756,20 +1844,27 @@
                             if (isAffected) {
                                 containerEl.classList.add('accent-term');
                                 const currentVol = Math.floor((info.leaf_number - 1) / appState.volumeLimit) + 1;
+                                
+                                if (!tooltipEl) {
+                                    tooltipEl = document.createElement('div');
+                                    tooltipEl.className = 'custom-tooltip';
+                                    containerEl.appendChild(tooltipEl);
+                                }
+                                
                                 if (boundaryType === 'term') {
                                     const isAbertura = info.leaf_number % appState.volumeLimit === 1;
                                     if (isAbertura) {
-                                        containerEl.title = `Termo de Abertura do Volume ${currentVol}. Espaço reservado e numeração correta.`;
+                                        tooltipEl.innerHTML = `<strong>Termo de Abertura</strong><br>Volume ${currentVol}. Espaço reservado e numeração correta.`;
                                     } else {
-                                        containerEl.title = `Termo de Encerramento do Volume ${currentVol - 1}. Espaço reservado e numeração correta.`;
+                                        tooltipEl.innerHTML = `<strong>Termo de Encerramento</strong><br>Volume ${currentVol - 1}. Espaço reservado e numeração correta.`;
                                     }
                                 } else if (boundaryType === 'start') {
-                                    containerEl.title = `Atenção: Início do Volume ${currentVol}. Como a opção 'Pular folhas para termo' está DESATIVADA, a inserção física dos termos de abertura/encerramento causará um descompasso de +2 páginas nesta numeração.`;
+                                    tooltipEl.innerHTML = `<strong>Aviso de Quebra de Volume!</strong><br>Início do Volume ${currentVol}. Como a opção 'Pular folhas para termo' está DESATIVADA, a inserção física dos termos causará um descompasso de +2 páginas nesta numeração.`;
                                 } else if (boundaryType === 'end') {
-                                    containerEl.title = `Fim do Volume ${currentVol}. Limite de ${appState.volumeLimit} folhas atingido.`;
+                                    tooltipEl.innerHTML = `<strong>Aviso de Quebra de Volume!</strong><br>Fim do Volume ${currentVol}. Limite de ${appState.volumeLimit} folhas atingido.`;
                                 }
                             } else {
-                                containerEl.removeAttribute('title');
+                                if (tooltipEl) tooltipEl.remove();
                             }
                         }
                     }
@@ -1830,7 +1925,64 @@
             if (appState.viewMode === 'all-grid') {
                 documentTitle.textContent = `Grade Completa (${appState.queue.length} PDFs)`;
 
+                // Configura o contêiner principal para fluxo vertical de seções de PDF
+                pagesGrid.style.display = 'flex';
+                pagesGrid.style.flexDirection = 'column';
+                pagesGrid.style.gap = '32px';
+
                 appState.queue.forEach((file, fileIdx) => {
+                    // Cria o contêiner de seção para este PDF
+                    const sectionEl = document.createElement('div');
+                    sectionEl.className = 'pdf-section';
+                    sectionEl.style.width = '100%';
+
+                    // Calcula o intervalo de folhas deste arquivo
+                    let minLeaf = null;
+                    let maxLeaf = null;
+                    if (file.pagesInfo) {
+                        const numbered = file.pagesInfo.filter(p => p.leaf_number !== null);
+                        if (numbered.length > 0) {
+                            minLeaf = Math.min(...numbered.map(p => p.leaf_number));
+                            maxLeaf = Math.max(...numbered.map(p => p.leaf_number));
+                        }
+                    }
+                    const leafText = (minLeaf !== null && maxLeaf !== null) 
+                        ? `Folhas: ${minLeaf} a ${maxLeaf}` 
+                        : 'Sem numeração';
+
+                    // Cria o cabeçalho da seção do PDF
+                    const secHeader = document.createElement('div');
+                    secHeader.className = 'pdf-section-header';
+                    secHeader.style.display = 'flex';
+                    secHeader.style.alignItems = 'center';
+                    secHeader.style.justifyContent = 'space-between';
+                    secHeader.style.padding = '12px 16px';
+                    secHeader.style.backgroundColor = 'var(--bg-card)';
+                    secHeader.style.border = '1px solid var(--border-color)';
+                    secHeader.style.borderRadius = '8px';
+                    secHeader.style.marginBottom = '16px';
+                    secHeader.style.fontWeight = '700';
+                    secHeader.style.color = 'var(--text-primary)';
+                    secHeader.style.fontSize = '13px';
+                    secHeader.innerHTML = `
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 16px;">📄</span>
+                            <span style="word-break: break-all;">${file.filename}</span>
+                            <span style="font-size: 10px; background-color: rgba(228, 84, 75, 0.1); color: var(--primary); padding: 2px 8px; border-radius: 9999px; font-weight: 600; white-space: nowrap;">
+                                ${file.totalPages} pág${file.totalPages > 1 ? 's' : ''}
+                            </span>
+                        </div>
+                        <div style="font-size: 11px; font-weight: 500; color: var(--text-secondary); white-space: nowrap; margin-left: 12px;">
+                            ${leafText}
+                        </div>
+                    `;
+                    sectionEl.appendChild(secHeader);
+
+                    // Cria o sub-grid para as miniaturas das páginas deste arquivo
+                    const subgridEl = document.createElement('div');
+                    subgridEl.className = 'grid-view';
+                    sectionEl.appendChild(subgridEl);
+
                     file.pages.forEach(page => {
                         const info = file.pagesInfo ? file.pagesInfo[page.page_idx] : null;
                         const isTerm = info && info.is_active && info.is_term;
@@ -1840,15 +1992,7 @@
                         if (isTerm) {
                             container.classList.add('accent-term');
                         }
-                        if (fileIdx % 2 === 1) {
-                            container.classList.add('pdf-group-odd');
-                        } else {
-                            container.classList.add('pdf-group-even');
-                        }
                         container.id = `page-container-${file.fileId}-${page.page_idx}`;
-
-                        const currentVol = (info && info.leaf_number !== null) ? Math.floor((info.leaf_number - 1) / appState.volumeLimit) + 1 : 1;
-                        const isVolStart = (info && info.leaf_number !== null && currentVol > 1 && info.leaf_number === (currentVol - 1) * appState.volumeLimit + 1);
 
                         // Header
                         const header = document.createElement('div');
@@ -1955,12 +2099,18 @@
                         wrapper.appendChild(btnToggle);
                         container.appendChild(header);
                         container.appendChild(wrapper);
-                        pagesGrid.appendChild(container);
+                        subgridEl.appendChild(container);
                     });
+
+                    pagesGrid.appendChild(sectionEl);
                 });
             } else {
                 const file = appState.queue[appState.activeFileIdx];
                 documentTitle.textContent = file.filename;
+
+                pagesGrid.style.display = '';
+                pagesGrid.style.flexDirection = '';
+                pagesGrid.style.gap = '';
 
                 file.pages.forEach(page => {
                     const info = file.pagesInfo ? file.pagesInfo[page.page_idx] : null;
@@ -2436,8 +2586,13 @@
             }
 
             try {
-                for (let i = 0; i < appState.queue.length; i++) {
-                    const file = appState.queue[i];
+                // Se a ação for salvar, processa todos os arquivos (lote). Caso contrário, processa apenas o arquivo ativo.
+                const filesToProcess = (action === 'save')
+                    ? appState.queue
+                    : [appState.queue[appState.activeFileIdx]].filter(Boolean);
+
+                for (let i = 0; i < filesToProcess.length; i++) {
+                    const file = filesToProcess[i];
 
                     let global_coords = null;
                     if (appState.globalCoords.x0 !== null) {
@@ -2487,9 +2642,12 @@
                     }
 
                     const blob = await response.blob();
-                    const downloadUrl = window.URL.createObjectURL(blob);
 
                     if (action === 'save') {
+                        // Força o download sem que o navegador tente abrir ou visualizar o PDF
+                        const saveBlob = new Blob([blob], { type: 'application/octet-stream' });
+                        const downloadUrl = window.URL.createObjectURL(saveBlob);
+
                         const a = document.createElement('a');
                         a.href = downloadUrl;
                         
@@ -2506,9 +2664,11 @@
                         await new Promise(r => setTimeout(r, 400));
 
                     } else if (action === 'open') {
+                        const downloadUrl = window.URL.createObjectURL(blob);
                         window.open(downloadUrl, '_blank');
 
                     } else if (action === 'print') {
+                        const downloadUrl = window.URL.createObjectURL(blob);
                         const iframe = document.createElement('iframe');
                         iframe.style.display = 'none';
                         iframe.src = downloadUrl;
@@ -2519,13 +2679,16 @@
                                 iframe.contentWindow.focus();
                                 iframe.contentWindow.print();
                                 resolve();
-                                setTimeout(() => iframe.remove(), 60000);
+                                setTimeout(() => {
+                                    iframe.remove();
+                                    window.URL.revokeObjectURL(downloadUrl);
+                                }, 60000);
                             };
                         });
                     }
                 }
             } catch (err) {
-                alert('Erro ao processar lote: ' + err.message);
+                alert('Erro ao processar: ' + err.message);
             } finally {
                 btnSaveBatch.disabled = false;
                 btnOpenBatch.disabled = false;
