@@ -100,12 +100,172 @@
 
         .section-title {
             font-family: Graphik, Arial, sans-serif;
-            font-size: 14px;
+            font-size: 11px;
             font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 8px;
+        }
+
+        /* iLovePDF-style inline stamp data group */
+        .stamp-data-group {
+            border: 1.5px solid var(--border-color);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .stamp-data-row {
+            display: flex;
+            align-items: stretch;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .stamp-data-row:last-child {
+            border-bottom: none;
+        }
+
+        .stamp-data-label {
+            flex: 0 0 42%;
+            padding: 10px 12px;
+            font-size: 13px;
+            font-weight: 500;
             color: var(--text-secondary);
-            margin-bottom: 12px;
-            border-bottom: 1.5px solid var(--border-color);
-            padding-bottom: 6px;
+            font-family: Graphik, Arial, sans-serif;
+            background-color: var(--bg-card);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            user-select: none;
+        }
+
+        .stamp-data-input {
+            flex: 1;
+            padding: 10px 12px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            border: none;
+            background: white;
+            outline: none;
+            font-family: Graphik, Arial, sans-serif;
+            width: 0; /* flex will handle sizing */
+        }
+
+        .stamp-data-input:focus {
+            background-color: #FFFDF9;
+            box-shadow: inset 0 0 0 2px rgba(228, 84, 75, 0.25);
+        }
+
+        /* Hide number spinners */
+        .stamp-data-input[type="number"]::-webkit-inner-spin-button,
+        .stamp-data-input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        .stamp-data-input[type="number"] { -moz-appearance: textfield; }
+
+        /* Active file pill */
+        .active-file-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            max-width: 100%;
+            background-color: rgba(228, 84, 75, 0.08);
+            border: 1px solid rgba(228, 84, 75, 0.25);
+            border-radius: 9999px;
+            padding: 3px 10px 3px 8px;
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 8px;
+        }
+
+        /* Pages scope inline row */
+        .pages-scope-row {
+            display: flex;
+            align-items: stretch;
+            border: 1.5px solid var(--border-color);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .pages-scope-label {
+            flex: 0 0 auto;
+            padding: 10px 12px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            font-family: Graphik, Arial, sans-serif;
+            background-color: var(--bg-card);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            white-space: nowrap;
+            user-select: none;
+        }
+
+        .pages-scope-input {
+            flex: 1;
+            padding: 10px 12px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            border: none;
+            background: white;
+            outline: none;
+            font-family: Graphik, Arial, sans-serif;
+            width: 0;
+        }
+
+        .pages-scope-input:focus {
+            background-color: #FFFDF9;
+            box-shadow: inset 0 0 0 2px rgba(228, 84, 75, 0.25);
+        }
+
+        /* Advanced settings accordion */
+        .advanced-details {
+            margin-top: 4px;
+        }
+
+        .advanced-summary {
+            list-style: none;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            font-family: Graphik, Arial, sans-serif;
+            color: var(--text-muted);
+            cursor: pointer;
+            user-select: none;
+            padding: 6px 2px;
+        }
+
+        .advanced-summary::-webkit-details-marker { display: none; }
+
+        .advanced-summary:hover {
+            color: var(--text-secondary);
+        }
+
+        .advanced-summary .chevron {
+            display: inline-block;
+            transition: transform 0.2s;
+            font-style: normal;
+        }
+
+        details.advanced-details[open] .chevron {
+            transform: rotate(90deg);
+        }
+
+        .advanced-content {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding-top: 14px;
         }
 
         .input-group {
@@ -127,7 +287,7 @@
             padding: 10px 18px;
             background-color: white;
             border: 1.5px solid var(--border-color);
-            border-radius: 12px; /* Smooth rounded corners */
+            border-radius: 10px;
             color: var(--text-primary);
             font-size: 14px;
             transition: all 0.2s;
@@ -321,7 +481,7 @@
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
-            max-width: 350px;
+            max-width: 500px;
         }
 
         .history-controls {
@@ -499,7 +659,7 @@
             outline: none;
             appearance: none;
             -webkit-appearance: none;
-            max-width: 300px;
+            max-width: 440px;
             text-overflow: ellipsis;
             white-space: nowrap;
             transition: all 0.2s;
@@ -660,7 +820,7 @@
         .page-wrapper {
             position: relative;
             background-color: white;
-            border-radius: 12px;
+            border-radius: 8px;
             box-shadow: 0 4px 12px rgba(28,25,23,0.05);
             overflow: hidden;
             border: 1px solid var(--border-color);
@@ -1055,67 +1215,85 @@
             <!-- PAINEL DE PARÂMETROS -->
             <div id="sidebar-params-panel" style="display: flex; flex-direction: column; gap: 20px;">
 
-                <!-- Parâmetros do Carimbo -->
-                <div style="display: flex; flex-direction: column; gap: 14px;">
-                    <div class="section-title">Dados do Carimbo</div>
-                    
-                    <div class="input-group">
-                        <label for="process-number">Número do Processo</label>
-                        <input type="text" id="process-number" value="9557/2026">
-                    </div>
-
-                    <div class="input-group">
-                        <label for="start-date">Data de Início</label>
-                        <input type="text" id="start-date" value="21/05/2026">
-                    </div>
-
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                        <div class="input-group">
-                            <label for="start-leaf">Folha Inicial</label>
-                            <input type="number" id="start-leaf" value="1" min="1">
+                <!-- Dados do Carimbo: iLovePDF inline label+value rows -->
+                <div>
+                    <div class="section-title">Carimbo</div>
+                    <div class="stamp-data-group">
+                        <div class="stamp-data-row">
+                            <span class="stamp-data-label">Processo n.º</span>
+                            <input class="stamp-data-input" type="text" id="process-number" value="9557/2026">
                         </div>
+                        <div class="stamp-data-row">
+                            <span class="stamp-data-label">Data de início</span>
+                            <input class="stamp-data-input" type="text" id="start-date" value="21/05/2026">
+                        </div>
+                        <div class="stamp-data-row">
+                            <span class="stamp-data-label">Folha inicial</span>
+                            <input class="stamp-data-input" type="number" id="start-leaf" value="1" min="1">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Que páginas carimbar (shown when a PDF is active) -->
+                <div id="active-pdf-interval-group" style="display: none;">
+                    <div class="section-title">Páginas</div>
+                    <div class="active-file-pill">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/></svg>
+                        <span id="active-file-name" style="overflow:hidden;text-overflow:ellipsis;">—</span>
+                    </div>
+                    <div class="pages-scope-row">
+                        <span class="pages-scope-label">Páginas</span>
+                        <input class="pages-scope-input" type="text" id="active-pdf-interval" placeholder="Todas, ex: 1-5, 8">
+                    </div>
+                </div>
+
+                <!-- Layout & Posicionamento -->
+                <div>
+                    <div class="section-title">Layout</div>
+                    <div style="display: flex; flex-direction: column; gap: 14px;">
+                        <div class="scale-slider-container">
+                            <div class="scale-header">
+                                <span>Escala do Carimbo</span>
+                                <span class="scale-val" id="scale-val">100%</span>
+                            </div>
+                            <div class="scale-input-wrapper">
+                                <input type="range" id="scale-range" min="50" max="150" value="100">
+                            </div>
+                        </div>
+
+                        <div class="switch-container">
+                            <div style="flex-grow:1;margin-right:8px;">
+                                <div style="font-size:13px;font-weight:500;color:var(--text-secondary);font-family:Graphik,Arial,sans-serif;">Posicionamento customizado</div>
+                                <div style="font-size:11px;color:var(--text-muted);margin-top:2px;font-family:Graphik,Arial,sans-serif;">Arraste o carimbo em cada página</div>
+                            </div>
+                            <label class="switch" style="flex-shrink:0;">
+                                <input type="checkbox" id="pos-mode">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Opções Avançadas (accordion) -->
+                <details class="advanced-details">
+                    <summary class="advanced-summary">
+                        <i class="chevron">›</i> Opções avançadas
+                    </summary>
+                    <div class="advanced-content">
                         <div class="input-group">
-                            <label for="volume-limit">Limite Volume</label>
+                            <label for="volume-limit">Limite de Volume</label>
                             <input type="number" id="volume-limit" value="200" min="10">
                         </div>
-                    </div>
-
-                    <div class="switch-container">
-                        <label for="reserve-terms">Pular folhas para termo de encerramento/abertura</label>
-                        <label class="switch">
-                            <input type="checkbox" id="reserve-terms" checked>
-                            <span class="slider"></span>
-                        </label>
-                    </div>
-
-                    <div class="input-group" id="active-pdf-interval-group" style="display: none; border-top: 1px solid var(--border-color); padding-top: 14px; margin-top: 6px;">
-                        <label for="active-pdf-interval" id="active-pdf-interval-label">Que páginas quer carimbar no PDF?</label>
-                        <input type="text" id="active-pdf-interval" placeholder="Todos, ex: 1-5, 8, 10-12">
-                    </div>
-                </div>
-
-                <!-- Controles Geométricos -->
-                <div style="display: flex; flex-direction: column; gap: 14px;">
-                    <div class="section-title">Layout & Posicionamento</div>
-
-                    <div class="scale-slider-container">
-                        <div class="scale-header">
-                            <span>Escala do Carimbo</span>
-                            <span class="scale-val" id="scale-val">100%</span>
-                        </div>
-                        <div class="scale-input-wrapper">
-                            <input type="range" id="scale-range" min="50" max="150" value="100">
+                        <div class="switch-container">
+                            <label for="reserve-terms" style="font-size:13px;font-weight:500;color:var(--text-secondary);">Pular folhas para termo de encerramento/abertura</label>
+                            <label class="switch">
+                                <input type="checkbox" id="reserve-terms" checked>
+                                <span class="slider"></span>
+                            </label>
                         </div>
                     </div>
+                </details>
 
-                    <div class="switch-container">
-                        <label for="pos-mode">Posicionamento Customizado (por página)</label>
-                        <label class="switch">
-                            <input type="checkbox" id="pos-mode">
-                            <span class="slider"></span>
-                        </label>
-                    </div>
-                </div>
             </div>
 
             <!-- PAINEL DA FILA DE PDFs (Oculto por padrão) -->
@@ -1129,6 +1307,7 @@
                 </p>
             </div>
         </div>
+
 
         <div class="sidebar-footer">
             <button class="btn btn-primary" id="btn-save-batch" disabled>
@@ -1280,7 +1459,7 @@
         const reserveTermsCheckbox = document.getElementById('reserve-terms');
         const activePdfIntervalInput = document.getElementById('active-pdf-interval');
         const activePdfIntervalGroup = document.getElementById('active-pdf-interval-group');
-        const activePdfIntervalLabel = document.getElementById('active-pdf-interval-label');
+        // active-pdf-interval-label removed: filename now shown in active-file-name pill
         const scaleRange = document.getElementById('scale-range');
         const scaleValLabel = document.getElementById('scale-val');
         const posModeCheckbox = document.getElementById('pos-mode');
@@ -1657,12 +1836,14 @@
             if (appState.activeFileIdx !== -1 && appState.queue[appState.activeFileIdx]) {
                 const file = appState.queue[appState.activeFileIdx];
                 activePdfIntervalInput.value = file.intervalText;
-                activePdfIntervalLabel.innerHTML = `Que páginas quer carimbar no PDF<br><span style="font-size:11px;color:var(--primary);word-break:break-all;">[${file.filename}]</span>?`;
-                activePdfIntervalGroup.style.display = 'flex';
+                const fileNameEl = document.getElementById('active-file-name');
+                if (fileNameEl) fileNameEl.textContent = file.filename;
+                activePdfIntervalGroup.style.display = 'block';
             } else {
                 activePdfIntervalGroup.style.display = 'none';
             }
         }
+
 
         // Atualiza a Fila na Sidebar
         function updateQueueUI() {
@@ -2293,10 +2474,10 @@
                     `;
                 } else {
                     titleHtml = `
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <span style="font-size: 16px;">📄</span>
-                            <span style="word-break: break-all;">${file.filename}</span>
-                            <span style="font-size: 10px; background-color: rgba(228, 84, 75, 0.1); color: var(--primary); padding: 2px 8px; border-radius: 9999px; font-weight: 600; white-space: nowrap;">
+                        <div style="display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1;">
+                            <span style="font-size: 16px; flex-shrink:0;">📄</span>
+                            <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1;font-weight:600;font-size:13px;">${file.filename}</span>
+                            <span style="font-size: 10px; background-color: rgba(228, 84, 75, 0.1); color: var(--primary); padding: 2px 8px; border-radius: 9999px; font-weight: 600; white-space: nowrap; flex-shrink:0;">
                                 ${file.totalPages} pág${file.totalPages > 1 ? 's' : ''}
                             </span>
                         </div>
