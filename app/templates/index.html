@@ -1858,7 +1858,7 @@
                                     if (isAbertura) {
                                         tooltipEl.innerHTML = `<strong>Termo de Abertura</strong><br>Volume ${currentVol}. Espaço reservado e numeração correta.`;
                                     } else {
-                                        tooltipEl.innerHTML = `<strong>Termo de Encerramento</strong><br>Volume ${currentVol - 1}. Espaço reservado e numeração correta.`;
+                                        tooltipEl.innerHTML = `<strong>Termo de Encerramento</strong><br>Volume ${currentVol}. Espaço reservado e numeração correta.`;
                                     }
                                 } else if (boundaryType === 'start') {
                                     tooltipEl.innerHTML = `<strong>Folha ${info.leaf_number}</strong><hr style="border-top: 1px solid rgba(255,255,255,0.15); margin: 6px 0;"><span style="color: #F59E0B; font-weight: 700;">⚠️ Início do Volume ${currentVol}</span><br><span style="font-size: 9px; opacity: 0.8;">A inserção dos termos causará descompasso de +2.</span>`;
