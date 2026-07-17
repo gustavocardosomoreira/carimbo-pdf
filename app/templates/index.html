@@ -612,6 +612,12 @@
             height: auto;
             display: block;
             pointer-events: none;
+            opacity: 0.65;
+            transition: opacity 0.2s ease-in-out;
+        }
+
+        .page-container:hover .page-img {
+            opacity: 0.9;
         }
 
         /* Elemento Carimbo Flutuante */
@@ -1014,6 +1020,11 @@
                             <span class="slider"></span>
                         </label>
                     </div>
+
+                    <div class="input-group" id="active-pdf-interval-group" style="display: none; border-top: 1px solid var(--border-color); padding-top: 14px; margin-top: 6px;">
+                        <label for="active-pdf-interval" id="active-pdf-interval-label">Que páginas quer carimbar no PDF?</label>
+                        <input type="text" id="active-pdf-interval" placeholder="Todos, ex: 1-5, 8, 10-12">
+                    </div>
                 </div>
 
                 <!-- Controles Geométricos -->
@@ -1200,6 +1211,9 @@
         const startLeafInput = document.getElementById('start-leaf');
         const volumeLimitInput = document.getElementById('volume-limit');
         const reserveTermsCheckbox = document.getElementById('reserve-terms');
+        const activePdfIntervalInput = document.getElementById('active-pdf-interval');
+        const activePdfIntervalGroup = document.getElementById('active-pdf-interval-group');
+        const activePdfIntervalLabel = document.getElementById('active-pdf-interval-label');
         const scaleRange = document.getElementById('scale-range');
         const scaleValLabel = document.getElementById('scale-val');
         const posModeCheckbox = document.getElementById('pos-mode');
@@ -1266,6 +1280,24 @@
                 recalculateSequences();
                 renderGrid();
             });
+        });
+
+        // Entrada de intervalo do PDF selecionado
+        activePdfIntervalInput.addEventListener('input', () => {
+            if (appState.activeFileIdx === -1) return;
+            const file = appState.queue[appState.activeFileIdx];
+            const val = activePdfIntervalInput.value;
+            file.intervalText = val;
+            file.activePages = parsePageIntervalJS(val, file.totalPages);
+
+            const queueInput = document.getElementById(`interval-input-${file.fileId}`);
+            if (queueInput) {
+                queueInput.value = val;
+            }
+
+            saveToHistory();
+            recalculateSequences();
+            renderGrid();
         });
 
         // Slider de Escala
@@ -1529,6 +1561,20 @@
             btnSaveBatch.disabled = true;
             btnOpenBatch.disabled = true;
             btnPrintBatch.disabled = true;
+            
+            syncActiveIntervalInput();
+        }
+
+        // Sincroniza o campo de intervalo de páginas no painel de configurações
+        function syncActiveIntervalInput() {
+            if (appState.activeFileIdx !== -1 && appState.queue[appState.activeFileIdx]) {
+                const file = appState.queue[appState.activeFileIdx];
+                activePdfIntervalInput.value = file.intervalText;
+                activePdfIntervalLabel.innerHTML = `Que páginas quer carimbar no PDF<br><span style="font-size:11px;color:var(--primary);word-break:break-all;">[${file.filename}]</span>?`;
+                activePdfIntervalGroup.style.display = 'flex';
+            } else {
+                activePdfIntervalGroup.style.display = 'none';
+            }
         }
 
         // Atualiza a Fila na Sidebar
@@ -1574,6 +1620,7 @@
                     appState.activeFileIdx = idx;
                     document.querySelectorAll('.pdf-queue-card').forEach(el => el.classList.remove('active'));
                     card.classList.add('active');
+                    syncActiveIntervalInput();
                     renderGrid();
                     recalculateSequences();
                 });
@@ -1584,6 +1631,9 @@
                     const val = e.target.value;
                     file.intervalText = val;
                     file.activePages = parsePageIntervalJS(val, file.totalPages);
+                    if (idx === appState.activeFileIdx) {
+                        syncActiveIntervalInput();
+                    }
                     recalculateSequences();
                     renderGrid();
                 });
@@ -1620,6 +1670,8 @@
                     }
                 });
             }
+
+            syncActiveIntervalInput();
         }
 
         // Remove um PDF da fila
@@ -1997,6 +2049,19 @@
                         }
                         container.id = `page-container-${file.fileId}-${page.page_idx}`;
 
+                        // Ao clicar no card, torna este PDF o ativo
+                        container.addEventListener('click', () => {
+                            if (appState.activeFileIdx !== fileIdx) {
+                                appState.activeFileIdx = fileIdx;
+                                document.querySelectorAll('.pdf-queue-card').forEach((cardEl, cIdx) => {
+                                    if (cIdx === fileIdx) cardEl.classList.add('active');
+                                    else cardEl.classList.remove('active');
+                                });
+                                syncActiveIntervalInput();
+                                recalculateSequences();
+                            }
+                        });
+
                         // Header
                         const header = document.createElement('div');
                         header.className = 'page-header-info';
@@ -2093,7 +2158,7 @@
                         const btnToggle = document.createElement('button');
                         btnToggle.className = 'btn-page-toggle';
                         btnToggle.innerHTML = file.activePages.includes(page.page_idx) ? '✓' : '✕';
-                        btnToggle.title = "Ativar/Desativar página no lote";
+                        btnToggle.title = "Ativar/Desativar carimbo nesta página";
                         btnToggle.addEventListener('click', (e) => {
                             e.stopPropagation();
                             togglePageActive(fileIdx, page.page_idx);
@@ -2225,7 +2290,7 @@
                     const btnToggle = document.createElement('button');
                     btnToggle.className = 'btn-page-toggle';
                     btnToggle.innerHTML = file.activePages.includes(page.page_idx) ? '✓' : '✕';
-                    btnToggle.title = "Ativar/Desativar página no lote";
+                    btnToggle.title = "Ativar/Desativar carimbo nesta página";
                     btnToggle.addEventListener('click', (e) => {
                         e.stopPropagation();
                         togglePageActive(appState.activeFileIdx, page.page_idx);
@@ -2259,6 +2324,10 @@
             file.intervalText = activePagesToIntervalStr(file.activePages, file.totalPages);
             const inputEl = document.getElementById(`interval-input-${file.fileId}`);
             if (inputEl) inputEl.value = file.intervalText;
+
+            if (fileIdx === appState.activeFileIdx) {
+                activePdfIntervalInput.value = file.intervalText;
+            }
 
             recalculateSequences();
             renderGrid();
