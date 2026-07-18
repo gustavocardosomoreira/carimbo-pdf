@@ -100,12 +100,11 @@
 
         .section-title {
             font-family: Graphik, Arial, sans-serif;
-            font-size: 11px;
+            font-size: 15px;
             font-weight: 700;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            margin-bottom: 8px;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+            margin-top: 6px;
         }
 
         /* iLovePDF-style inline stamp data group */
@@ -1247,27 +1246,15 @@
                     </div>
                 </div>
 
-                <!-- Layout & Posicionamento -->
+                <!-- Posicionamento -->
                 <div>
-                    <div class="section-title">Layout</div>
-                    <div style="display: flex; flex-direction: column; gap: 14px;">
-                        <div class="scale-slider-container">
-                            <div class="scale-header">
-                                <span>Escala do Carimbo</span>
-                                <span class="scale-val" id="scale-val">100%</span>
-                            </div>
-                            <div class="scale-input-wrapper">
-                                <input type="range" id="scale-range" min="50" max="150" value="100">
-                            </div>
-                        </div>
-
-                        <div class="switch-container">
-                            <label for="pos-mode" style="font-size:13px;font-weight:500;color:var(--text-secondary);font-family:Graphik,Arial,sans-serif;">Posicionamento customizado (por página)</label>
-                            <label class="switch">
-                                <input type="checkbox" id="pos-mode">
-                                <span class="slider"></span>
-                            </label>
-                        </div>
+                    <div class="section-title">Posicionamento</div>
+                    <div class="switch-container">
+                        <label for="pos-mode" style="font-size:13px;font-weight:500;color:var(--text-secondary);font-family:Graphik,Arial,sans-serif;">Posicionamento customizado (por página)</label>
+                        <label class="switch">
+                            <input type="checkbox" id="pos-mode">
+                            <span class="slider"></span>
+                        </label>
                     </div>
                 </div>
 
@@ -1277,6 +1264,16 @@
                         <i class="chevron">›</i> Opções avançadas
                     </summary>
                     <div class="advanced-content">
+                        <!-- Escala do Carimbo (Moved here as it is rarely modified) -->
+                        <div class="scale-slider-container" style="margin-bottom: 4px;">
+                            <div class="scale-header">
+                                <span style="font-family:Graphik,Arial,sans-serif;font-size:13px;font-weight:500;">Escala do Carimbo</span>
+                                <span class="scale-val" id="scale-val" style="font-family:Graphik,Arial,sans-serif;font-size:13px;font-weight:600;">100%</span>
+                            </div>
+                            <div class="scale-input-wrapper">
+                                <input type="range" id="scale-range" min="50" max="150" value="100">
+                            </div>
+                        </div>
                         <div class="input-group">
                             <label for="volume-limit">Limite de Volume</label>
                             <input type="number" id="volume-limit" value="200" min="10">
