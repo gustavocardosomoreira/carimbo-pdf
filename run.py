@@ -17,7 +17,7 @@ def main():
     run_cmd([sys.executable, "-m", "pip", "install", "-r", "requirements.txt"])
 
     # 2. Run uvicorn
-    print("\nStep 2: Starting the application server (SIGFolha)...")
+    print("\nStep 2: Starting the application server (Carimbo.pdf)...")
     print("The backend serves both the API and the frontend user interface.")
     print("Once started, open your browser at: http://127.0.0.1:8000\n")
     try:

@@ -21,7 +21,7 @@ def test_serve_frontend():
     # Testar se a rota principal serve a página do frontend
     response = client.get("/")
     assert response.status_code == 200
-    assert "SIGFolha" in response.text
+    assert "Carimbo.pdf" in response.text
     assert "btn-view-all-grid" in response.text
     assert "btn-open-batch" in response.text
     assert "Abrir" in response.text

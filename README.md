@@ -1,6 +1,6 @@
-# SIGFolha - Carimbador Dinâmico de PDF
+# Carimbo.pdf - Carimbador Dinâmico de PDF
 
-O **SIGFolha** é um processador digital em lote (Batch Processor) de alta performance projetado para automatizar a carimbagem vetorial e a numeração sequencial de folhas em documentos PDF. Ele foi desenvolvido com o foco em **atrito zero** e interface moderna inspirada nas melhores práticas de design (Charm Design System).
+O **Carimbo.pdf** é um processador digital em lote (Batch Processor) de alta performance projetado para automatizar a carimbagem vetorial e a numeração sequencial de folhas em documentos PDF. Ele foi desenvolvido com o foco em **atrito zero** e interface moderna inspirada nas melhores práticas de design (Charm Design System).
 
 O software funciona de duas formas:
 1. **Local (Desktop):** Como um executável portátil único (`.exe`) para Windows 11.
@@ -10,7 +10,7 @@ O software funciona de duas formas:
 
 ## 📸 Mockup da Interface
 O design visual do sistema segue o mockup abaixo (salvo no repositório):
-![SIGFolha GUI Mockup](mockups/gui_reference.jpg)
+![Carimbo.pdf GUI Mockup](mockups/gui_reference.jpg)
 
 ---
 
@@ -97,7 +97,7 @@ Para compilar o aplicativo completo em um único executável portátil do Window
 ```bash
 python build_desktop.py
 ```
-O executável final estará disponível na pasta `dist/SIGFolha.exe`. Ele embutirá automaticamente o servidor FastAPI, o motor PyMuPDF, a interface SPA e os arquivos de fontes Century Gothic.
+O executável final estará disponível na pasta `dist/carimbo-pdf.exe`. Ele embutirá automaticamente o servidor FastAPI, o motor PyMuPDF, a interface SPA e os arquivos de fontes Century Gothic.
 
 ---
 

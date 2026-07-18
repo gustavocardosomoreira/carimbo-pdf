@@ -1,4 +1,4 @@
-# config.py - Configurações padrão para o SIGFolha
+# config.py - Configurações padrão para o Carimbo.pdf
 
 DEFAULT_STAMP_WIDTH = 150.0   # largura base em pontos (pt)
 DEFAULT_STAMP_HEIGHT = 60.0   # altura base em pontos (pt)

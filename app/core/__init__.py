@@ -1,1 +1,1 @@
-# Módulo core do SIGFolha
+# Módulo core do Carimbo.pdf

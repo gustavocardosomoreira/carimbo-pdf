@@ -22,7 +22,7 @@ from app.core.pdf_processor import (
 )
 import fitz
 
-app = FastAPI(title="SIGFolha - Carimbador Dinâmico de PDF")
+app = FastAPI(title="Carimbo.pdf - Carimbador Dinâmico de PDF")
 
 # Configurar diretório de templates e uploads
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -168,5 +168,5 @@ async def stamp_pdf_route(request: StampRequest):
     return FileResponse(
         path=output_path,
         media_type="application/pdf",
-        filename="SIGFolha_carimbado.pdf"
+        filename="carimbo_carimbado.pdf"
     )

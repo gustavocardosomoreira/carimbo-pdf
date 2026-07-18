@@ -1,6 +1,6 @@
 @echo off
 echo ==========================================
-echo Starting SIGFolha Startup Script...
+echo Starting Carimbo.pdf Startup Script...
 echo ==========================================
 py run.py
 pause

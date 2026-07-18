@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SIGFolha - Carimbador Dinâmico de PDF</title>
+    <title>Carimbo.pdf - Carimbador Dinâmico de PDF</title>
     <!-- Google Fonts: Inter, DM Sans & JetBrains Mono -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1332,7 +1332,7 @@
                     <svg viewBox="0 0 24 24" style="width: 24px; height: 24px; fill: var(--primary);">
                         <path d="M5,4H19A2,2 0 0,1 21,6V18A2,2 0 0,1 19,20H5A2,2 0 0,1 3,18V6A2,2 0 0,1 5,4M5,8V12H11V8H5M13,8V12H19V8H13M5,14V18H11V14H5M13,14V18H19V14H13Z"/>
                     </svg>
-                    <span style="font-family: Graphik, Arial, sans-serif; font-size: 20px; font-weight: 800; background: linear-gradient(135deg, #E87060 0%, #E4544B 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: -0.02em;">SIGFolha</span>
+                    <span style="font-family: Graphik, Arial, sans-serif; font-size: 20px; font-weight: 800; background: linear-gradient(135deg, #E87060 0%, #E4544B 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: -0.02em;">Carimbo.pdf</span>
                 </div>
                 <div style="width: 1px; height: 20px; background-color: var(--border-color);"></div>
                 <div class="toolbar-title" id="document-title">Nenhum documento carregado</div>
@@ -3029,9 +3029,9 @@
                         const a = document.createElement('a');
                         a.href = downloadUrl;
                         
-                        // Sufixo _SIGFOLHA.pdf
+                        // Sufixo _carimbado.pdf
                         const { baseName, ext } = sanitizeAndTruncateFilename(file.filename, 60);
-                        a.download = `${baseName}_SIGFOLHA.${ext}`;
+                        a.download = `${baseName}_carimbado.${ext}`;
                         
                         document.body.appendChild(a);
                         a.click();

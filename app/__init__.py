@@ -1,1 +1,1 @@
-# Módulo app do SIGFolha
+# Módulo app do Carimbo.pdf
