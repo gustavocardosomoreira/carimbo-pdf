@@ -63,6 +63,15 @@
             flex-shrink: 0;
             box-shadow: var(--shadow-sm); /* Charm style: tone first, thin shadow */
             z-index: 10;
+            transition: margin-right 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                        transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                        visibility 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body.sidebar-collapsed .sidebar {
+            margin-right: -360px;
+            transform: translateX(360px);
+            visibility: hidden;
         }
 
         .sidebar-header {
@@ -459,6 +468,125 @@
             flex-direction: column;
             height: 100%;
             background-color: var(--bg-main);
+            min-width: 0;
+        }
+
+        /* Overlay para mobile */
+        .sidebar-overlay {
+            display: none;
+        }
+
+        /* Sidebar toggle handle */
+        .sidebar-toggle-handle {
+            display: none; /* Hidden on desktop */
+        }
+
+        /* Responsividade */
+        @media (max-width: 960px) {
+            .sidebar {
+                position: fixed;
+                right: 0;
+                top: 0;
+                bottom: 0;
+                height: 100%;
+                width: 320px;
+                z-index: 100;
+                box-shadow: var(--shadow-lg);
+                border-left: 1px solid var(--border-color);
+                margin-right: 0;
+                transform: translateX(100%);
+                overflow: visible; /* Permitir que a aba de toggle apareça */
+            }
+            
+            body.sidebar-active .sidebar {
+                transform: translateX(0);
+            }
+            
+            body.sidebar-collapsed .sidebar {
+                margin-right: 0;
+                transform: translateX(100%);
+            }
+
+            /* Ocultar conteúdo quando fechado no mobile */
+            body:not(.sidebar-active) .sidebar > :not(.sidebar-toggle-handle) {
+                visibility: hidden;
+            }
+
+            .sidebar-toggle-handle {
+                display: flex;
+                position: absolute;
+                left: -32px;
+                top: 50%;
+                transform: translateY(-50%);
+                width: 32px;
+                height: 64px;
+                background-color: var(--bg-sidebar);
+                border: 1px solid var(--border-color);
+                border-right: none;
+                border-radius: 12px 0 0 12px;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                box-shadow: -4px 0 8px rgba(28, 25, 23, 0.05);
+                z-index: 101;
+                transition: background-color 0.2s;
+            }
+
+            .sidebar-toggle-handle:hover {
+                background-color: var(--bg-card);
+            }
+
+            .sidebar-toggle-handle svg {
+                width: 20px;
+                height: 20px;
+                fill: var(--text-secondary);
+                transition: transform 0.3s ease;
+            }
+
+            /* Quando ativo, gira a seta para apontar para a direita (fechar) */
+            body.sidebar-active #sidebar-toggle-icon {
+                transform: rotate(180deg);
+            }
+            
+            .sidebar-overlay {
+                display: block;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background-color: rgba(28, 25, 23, 0.3);
+                backdrop-filter: blur(4px);
+                -webkit-backdrop-filter: blur(4px);
+                z-index: 90;
+                opacity: 0;
+                visibility: hidden;
+                transition: opacity 0.3s ease, visibility 0.3s ease;
+            }
+            
+            body.sidebar-active .sidebar-overlay {
+                opacity: 1;
+                visibility: visible;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .zoom-slider-container span {
+                display: none !important;
+            }
+            .zoom-slider-container input[type="range"] {
+                width: 80px !important;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .logo-text, .toolbar-separator {
+                display: none !important;
+            }
+            .toolbar-title {
+                font-size: 14px;
+                max-width: 180px;
+            }
         }
 
         /* Barra de Ferramentas */
@@ -1201,9 +1329,17 @@
     </style>
 </head>
 <body>
+    <!-- Overlay para fechar barra lateral no mobile/tablet ao clicar fora -->
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar(false)"></div>
 
     <!-- Barra Lateral de Configurações -->
     <div class="sidebar">
+        <!-- Floating Arrow Toggle Handle on narrow viewports -->
+        <div class="sidebar-toggle-handle" id="sidebar-toggle-handle" onclick="toggleSidebar()">
+            <svg id="sidebar-toggle-icon" viewBox="0 0 24 24">
+                <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
+            </svg>
+        </div>
         <!-- Abas Condicionais (só aparecem se queue.length >= 2) -->
         <div class="sidebar-tabs" id="sidebar-tabs" style="display: none;">
             <button class="tab-btn active" id="tab-btn-params" onclick="switchSidebarTab('params')">Configurações</button>
@@ -1332,9 +1468,9 @@
                     <svg viewBox="0 0 24 24" style="width: 24px; height: 24px; fill: var(--primary);">
                         <path d="M5,4H19A2,2 0 0,1 21,6V18A2,2 0 0,1 19,20H5A2,2 0 0,1 3,18V6A2,2 0 0,1 5,4M5,8V12H11V8H5M13,8V12H19V8H13M5,14V18H11V14H5M13,14V18H19V14H13Z"/>
                     </svg>
-                    <span style="font-family: Graphik, Arial, sans-serif; font-size: 20px; font-weight: 800; background: linear-gradient(135deg, #E87060 0%, #E4544B 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: -0.02em;">Carimbo.pdf</span>
+                    <span class="logo-text" style="font-family: Graphik, Arial, sans-serif; font-size: 20px; font-weight: 800; background: linear-gradient(135deg, #E87060 0%, #E4544B 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: -0.02em;">Carimbo.pdf</span>
                 </div>
-                <div style="width: 1px; height: 20px; background-color: var(--border-color);"></div>
+                <div class="toolbar-separator" style="width: 1px; height: 20px; background-color: var(--border-color);"></div>
                 <div class="toolbar-title" id="document-title">Nenhum documento carregado</div>
             </div>
             
@@ -1370,7 +1506,6 @@
                             <path d="M18.4,10.6C16.55,9 14.15,8 11.5,8C6.86,8 2.92,11.08 1.53,15.22L3.9,16C4.95,12.81 7.96,10.5 11.5,10.5C13.46,10.5 15.23,11.22 16.62,12.38L13,16H22V7L18.4,10.6Z"/>
                         </svg>
                     </button>
-                </div>
             </div>
         </div>
 
@@ -1408,6 +1543,35 @@
 
     <!-- Script SPA -->
     <script>
+        // Funções para controle da Barra Lateral Responsiva
+        function toggleSidebar(forceState) {
+            const isMobile = window.innerWidth <= 960;
+            if (isMobile) {
+                document.body.classList.remove('sidebar-collapsed');
+                if (typeof forceState === 'boolean') {
+                    document.body.classList.toggle('sidebar-active', forceState);
+                } else {
+                    document.body.classList.toggle('sidebar-active');
+                }
+            } else {
+                document.body.classList.remove('sidebar-active');
+                if (typeof forceState === 'boolean') {
+                    document.body.classList.toggle('sidebar-collapsed', !forceState);
+                } else {
+                    document.body.classList.toggle('sidebar-collapsed');
+                }
+            }
+        }
+
+        window.addEventListener('resize', () => {
+            const isMobile = window.innerWidth <= 960;
+            if (isMobile) {
+                document.body.classList.remove('sidebar-collapsed');
+            } else {
+                document.body.classList.remove('sidebar-active');
+            }
+        });
+
         // Configurações padrão do sistema
         const STAMP_BASE_WIDTH = 150.0;
         const STAMP_BASE_HEIGHT = 60.0;
