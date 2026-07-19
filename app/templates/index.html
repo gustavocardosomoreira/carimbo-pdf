@@ -570,12 +570,24 @@
             }
         }
 
+        @media (max-width: 1100px) {
+            .zoom-slider-container span:first-child {
+                display: none !important;
+            }
+            .toolbar-title {
+                max-width: 220px;
+            }
+        }
+
         @media (max-width: 768px) {
             .zoom-slider-container span {
                 display: none !important;
             }
             .zoom-slider-container input[type="range"] {
-                width: 80px !important;
+                width: 70px !important;
+            }
+            .toolbar-title {
+                max-width: 160px;
             }
         }
 
@@ -585,7 +597,7 @@
             }
             .toolbar-title {
                 font-size: 14px;
-                max-width: 180px;
+                max-width: 130px;
             }
         }
 
@@ -593,11 +605,28 @@
         .toolbar {
             height: 64px;
             border-bottom: 1px solid var(--border-color);
-            padding: 0 24px;
+            padding: 0 16px;
             display: flex;
             align-items: center;
             justify-content: space-between;
             background-color: var(--bg-card);
+            gap: 12px;
+            overflow: hidden;
+        }
+
+        .toolbar-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 0;
+            flex-shrink: 1;
+        }
+
+        .toolbar-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-shrink: 0;
         }
 
         .toolbar-title {
@@ -608,7 +637,8 @@
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
-            max-width: 500px;
+            max-width: 400px;
+            min-width: 0;
         }
 
         .history-controls {
@@ -1293,6 +1323,7 @@
             border: 1px solid var(--border-color);
             border-radius: 12px; /* Smooth rounded corners */
             overflow: hidden;
+            flex-shrink: 0; /* Never shrink or hide view mode toggle buttons */
         }
         .view-mode-selector .btn-icon {
             border: none;
@@ -1305,19 +1336,28 @@
             background-color: var(--primary);
             color: white;
         }
+        .history-controls {
+            display: flex;
+            gap: 8px;
+            flex-shrink: 0;
+        }
         .zoom-slider-container {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
             background-color: var(--bg-card);
             border: 1px solid var(--border-color);
-            padding: 4px 16px;
+            padding: 4px 10px;
             border-radius: 12px; /* Smooth rounded corners */
             height: 38px;
+            flex-shrink: 1;
+            min-width: 0;
         }
         .zoom-slider-container input[type="range"] {
             height: 4px;
-            width: 200px;
+            width: 100px;
+            min-width: 50px;
+            flex-shrink: 1;
             background: #E7E6E5;
             accent-color: var(--primary);
             cursor: pointer;
@@ -1325,6 +1365,7 @@
         .zoom-slider-container span {
             font-size: 11px;
             color: var(--text-secondary);
+            white-space: nowrap;
         }
     </style>
 </head>
@@ -1462,7 +1503,7 @@
     <div class="workspace">
         <!-- Barra de Ferramentas Superior -->
         <div class="toolbar">
-            <div style="display: flex; align-items: center; gap: 16px;">
+            <div class="toolbar-left">
                 <div class="logo-container" style="display: flex; align-items: center; gap: 8px;">
                     <!-- Ícone de Tabela (Carimbo) -->
                     <svg viewBox="0 0 24 24" style="width: 24px; height: 24px; fill: var(--primary);">
@@ -1474,7 +1515,7 @@
                 <div class="toolbar-title" id="document-title">Nenhum documento carregado</div>
             </div>
             
-            <div style="display: flex; align-items: center; gap: 16px;">
+            <div class="toolbar-right">
                 <!-- Zoom Slider -->
                 <div class="zoom-slider-container" id="zoom-controls" style="display: none;">
                     <span>Miniaturas:</span>
