@@ -80,6 +80,7 @@
             display: flex;
             align-items: center;
             gap: 12px;
+            flex-shrink: 0;
         }
 
         .sidebar-header svg {
@@ -604,6 +605,9 @@
         /* Barra de Ferramentas */
         .toolbar {
             height: 64px;
+            min-height: 64px;
+            max-height: 64px;
+            flex-shrink: 0;
             border-bottom: 1px solid var(--border-color);
             padding: 0 16px;
             display: flex;
@@ -680,6 +684,8 @@
         /* Área de Visualização do Documento */
         .document-viewer {
             flex-grow: 1;
+            flex-shrink: 1;
+            min-height: 0;
             padding: 24px;
             overflow-y: auto;
             display: flex;
