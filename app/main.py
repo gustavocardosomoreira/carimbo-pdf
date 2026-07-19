@@ -1,8 +1,9 @@
 import os
 import uuid
 import shutil
+import time
 from typing import Dict, Any, Optional, List
-from fastapi import FastAPI, UploadFile, File, HTTPException, Request, Form
+from fastapi import FastAPI, UploadFile, File, HTTPException, Request, Form, BackgroundTasks
 from fastapi.responses import HTMLResponse, FileResponse, Response
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
@@ -50,6 +51,29 @@ class StampRequest(BaseModel):
     custom_coords: Optional[Dict[str, StampCoords]] = None
     active_pages: Optional[List[int]] = None
 
+def cleanup_old_uploads(max_age_seconds: int = 3600):
+    """
+    Remove arquivos temporários de upload com idade superior a max_age_seconds (padrão: 1 hora).
+    """
+    now = time.time()
+    if not os.path.exists(UPLOAD_DIR):
+        return
+    for filename in os.listdir(UPLOAD_DIR):
+        file_path = os.path.join(UPLOAD_DIR, filename)
+        if os.path.isfile(file_path):
+            try:
+                if now - os.path.getmtime(file_path) > max_age_seconds:
+                    os.remove(file_path)
+            except Exception:
+                pass
+
+@app.get("/health")
+async def health_check():
+    """
+    Endpoint de verificação de integridade (Health Check) para o Railway/Plataformas de nuvem.
+    """
+    return {"status": "ok"}
+
 @app.get("/", response_class=HTMLResponse)
 async def serve_frontend(request: Request):
     """
@@ -62,10 +86,11 @@ async def serve_frontend(request: Request):
     return response
 
 @app.post("/api/upload")
-async def upload_pdf(file: UploadFile = File(...)):
+async def upload_pdf(background_tasks: BackgroundTasks, file: UploadFile = File(...)):
     """
     Recebe um PDF, armazena temporariamente, lê suas dimensões e metadados.
     """
+    background_tasks.add_task(cleanup_old_uploads)
     if not file.filename.endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Por favor, envie apenas arquivos PDF.")
         

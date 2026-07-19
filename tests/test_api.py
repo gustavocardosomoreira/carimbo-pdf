@@ -17,6 +17,11 @@ def dummy_pdf():
     doc.close()
     return pdf_bytes
 
+def test_health_check():
+    response = client.get("/health")
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok"}
+
 def test_serve_frontend():
     # Testar se a rota principal serve a página do frontend
     response = client.get("/")
