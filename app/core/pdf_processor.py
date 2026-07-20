@@ -131,8 +131,8 @@ def draw_vector_stamp(
     Garante resolução infinita na impressão.
     """
     import os
-    # Proporções base (150 x 60 pt)
-    W = 150.0 * scale
+    # Proporções base (120.4 x 60 pt / 42.47 x 21.17 mm)
+    W = 120.4 * scale
     H = 60.0 * scale
     x1 = x0 + W
     y1 = y0 + H
@@ -140,7 +140,7 @@ def draw_vector_stamp(
     # Coordenadas internas
     y_line1 = y0 + 16.0 * scale
     y_line2 = y0 + 38.0 * scale
-    x_split = x0 + 102.0 * scale
+    x_split = x0 + 83.9 * scale
     
     # Matriz de derotação para converter coordenadas visuais para o espaço físico da página
     derot = page.derotation_matrix
@@ -203,15 +203,9 @@ def draw_vector_stamp(
         rotate=page.rotation
     )
     
-    # Linha 2 (Direita): Fl. (Sem espaço antes do número: Fl.18)
+    # Linha 2 (Direita): Fl. (Alinhado à esquerda com o mesmo recuo)
     fl_text = f"Fl.{leaf_number}"
-    if font_file:
-        font_obj = fitz.Font(fontfile=font_file)
-        fl_w = font_obj.text_length(fl_text, fontsize=font_size)
-    else:
-        fl_w = fitz.get_text_length(fl_text, fontname=font_name, fontsize=font_size)
-    fl_cell_w = x1 - x_split
-    fl_x = x_split + (fl_cell_w - fl_w) / 2
+    fl_x = x_split + left_padding
     fl_y = y0 + 29.5 * scale
     shape.insert_text(fitz.Point(fl_x, fl_y) * derot, fl_text, fontname=font_name, fontfile=font_file, fontsize=font_size, color=(0, 0, 0), rotate=page.rotation)
     
@@ -282,7 +276,7 @@ def process_pdf_stamping(
                     x0 = page_width - right_offset
             else:
                 # Posicionamento padrão: Canto superior direito
-                w = 150.0 * scale
+                w = 120.4 * scale
                 h = 60.0 * scale
                 x0 = page_width - 20.0 - w
                 y0 = 20.0
