@@ -173,3 +173,99 @@ def test_api_stamp_with_inactive_pages(dummy_pdf):
         if os.path.exists(filepath):
             os.remove(filepath)
 
+def test_preview_cache_control(dummy_pdf):
+    upload_response = client.post(
+        "/api/upload",
+        files={"file": ("documento_teste.pdf", io.BytesIO(dummy_pdf), "application/pdf")}
+    )
+    assert upload_response.status_code == 200
+    file_id = upload_response.json()["file_id"]
+
+    preview_response = client.get(f"/api/preview/{file_id}/0")
+    assert preview_response.status_code == 200
+    assert "cache-control" in preview_response.headers
+    assert "private" in preview_response.headers["cache-control"]
+
+    input_path = os.path.join(UPLOAD_DIR, f"{file_id}.pdf")
+    if os.path.exists(input_path):
+        os.remove(input_path)
+
+def test_upload_file_size_limit(monkeypatch, dummy_pdf):
+    # Diminuir temporariamente o limite MAX_FILE_SIZE_BYTES para o teste
+    import app.main as main_mod
+    monkeypatch.setattr(main_mod, "MAX_FILE_SIZE_BYTES", 100) # 100 bytes
+
+    response = client.post(
+        "/api/upload",
+        files={"file": ("documento_grande.pdf", io.BytesIO(dummy_pdf), "application/pdf")}
+    )
+    assert response.status_code == 413
+    assert "50 MB" in response.json()["detail"]
+
+def test_concurrent_multi_user_requests(dummy_pdf):
+    from concurrent.futures import ThreadPoolExecutor
+
+    def simulate_user_workflow(user_idx):
+        user_client = TestClient(app)
+        upload_resp = user_client.post(
+            "/api/upload",
+            files={"file": (f"user_{user_idx}.pdf", io.BytesIO(dummy_pdf), "application/pdf")}
+        )
+        if upload_resp.status_code != 200:
+            return False, "upload failed"
+        file_id = upload_resp.json()["file_id"]
+
+        preview_resp = user_client.get(f"/api/preview/{file_id}/0")
+        if preview_resp.status_code != 200:
+            return False, "preview failed"
+
+        stamp_payload = {
+            "file_id": file_id,
+            "process_number": f"100{user_idx}/2026",
+            "start_date": "20/07/2026",
+            "start_leaf": 1,
+            "volume_limit": 200,
+            "reserve_terms": False
+        }
+        stamp_resp = user_client.post("/api/stamp", json=stamp_payload)
+        if stamp_resp.status_code != 200:
+            return False, "stamp failed"
+
+        # Clean up
+        for fname in [f"{file_id}.pdf", f"{file_id}_stamped.pdf"]:
+            fpath = os.path.join(UPLOAD_DIR, fname)
+            if os.path.exists(fpath):
+                os.remove(fpath)
+
+        return True, "success"
+
+    # Simular 5 usuários concorrentes acessando a API ao mesmo tempo
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        results = list(executor.map(simulate_user_workflow, range(5)))
+
+    for success, msg in results:
+        assert success is True, f"Multiusuário concorrente falhou: {msg}"
+
+def test_smart_active_session_cleanup(dummy_pdf, monkeypatch):
+    import time
+    from app.main import cleanup_inactive_uploads, SESSION_ACTIVITY
+
+    upload_response = client.post(
+        "/api/upload",
+        files={"file": ("documento_sessao.pdf", io.BytesIO(dummy_pdf), "application/pdf")}
+    )
+    assert upload_response.status_code == 200
+    file_id = upload_response.json()["file_id"]
+
+    input_path = os.path.join(UPLOAD_DIR, f"{file_id}.pdf")
+    assert os.path.exists(input_path)
+
+    # Simular que a última atividade da sessão foi há 40 minutos (2400 s)
+    SESSION_ACTIVITY[file_id] = time.time() - 2400
+
+    # Executar limpeza para inativos > 1800 s (30 min)
+    cleanup_inactive_uploads(max_age_seconds=1800)
+
+    # O arquivo inativo deve ser removido
+    assert not os.path.exists(input_path)
+
