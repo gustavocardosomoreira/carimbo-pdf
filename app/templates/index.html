@@ -571,6 +571,118 @@
             }
         }
 
+        /* Modal de aviso para campos incompletos (Charm style) */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(28, 25, 23, 0.4);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.25s ease, visibility 0.25s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-card {
+            background: #FFFFFF;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 440px;
+            padding: 24px 28px;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--border-color);
+            transform: scale(0.95);
+            transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .modal-overlay.active .modal-card {
+            transform: scale(1);
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .modal-icon-warning {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            background-color: #FEF3C7;
+            color: #D97706;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .modal-icon-warning svg {
+            width: 24px;
+            height: 24px;
+            fill: currentColor;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-primary);
+            font-family: Graphik, Arial, sans-serif;
+        }
+
+        .modal-body p {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .modal-body ul {
+            margin-top: 8px;
+            margin-left: 20px;
+            font-size: 13px;
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 8px;
+        }
+
+        .btn-secondary {
+            background-color: var(--bg-card);
+            border: 1.5px solid var(--border-color);
+            color: var(--text-primary);
+            border-radius: 12px;
+            padding: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            flex: 1;
+            transition: all 0.2s;
+        }
+
+        .btn-secondary:hover {
+            background-color: var(--bg-main);
+            border-color: var(--text-muted);
+        }
+
         @media (max-width: 1100px) {
             .zoom-slider-container span:first-child {
                 display: none !important;
@@ -1057,6 +1169,7 @@
             padding: 0;
             pointer-events: none;
             overflow: hidden;
+            white-space: pre;
             font-family: 'Century Gothic', 'Questrial', 'CenturyGothic', sans-serif;
         }
 
@@ -1404,11 +1517,11 @@
                     <div class="stamp-data-group">
                         <div class="stamp-data-row">
                             <span class="stamp-data-label">Processo n.º</span>
-                            <input class="stamp-data-input" type="text" id="process-number" value="9557/2026">
+                            <input class="stamp-data-input" type="text" id="process-number" value="/2026">
                         </div>
                         <div class="stamp-data-row">
                             <span class="stamp-data-label">Data de início</span>
-                            <input class="stamp-data-input" type="text" id="start-date" value="21/05/2026">
+                            <input class="stamp-data-input" type="text" id="start-date" value="//2026">
                         </div>
                         <div class="stamp-data-row">
                             <span class="stamp-data-label">Folha inicial</span>
@@ -1627,6 +1740,45 @@
         const MARGIN_RIGHT = 20.0;
         const MARGIN_TOP = 20.0;
 
+        function formatProcessNumberJS(val) {
+            const pad15 = '\u00A0'.repeat(15);
+            if (!val) return pad15 + '/2026';
+            val = val.trim();
+            if (val === '/2026' || val === '/' || val.startsWith('/')) {
+                const year = val.length > 1 ? val.slice(1) : '2026';
+                return pad15 + '/' + (year || '2026');
+            }
+            if (val.includes('/')) {
+                const parts = val.split('/');
+                const numPart = parts[0].trim();
+                const yearPart = parts[1].trim();
+                if (!numPart) return pad15 + '/' + (yearPart || '2026');
+                return numPart + '/' + (yearPart || '2026');
+            }
+            return val;
+        }
+
+        function formatStartDateJS(val) {
+            const padDay = '\u00A0'.repeat(8);
+            const padMonth = '\u00A0'.repeat(9);
+            if (!val) return padDay + '/' + padMonth + '/2026';
+            val = val.trim();
+            if (val === '//2026' || val === '//' || val.startsWith('//')) {
+                const year = val.length > 2 ? val.slice(2) : '2026';
+                return padDay + '/' + padMonth + '/' + (year || '2026');
+            }
+            if (val.includes('/')) {
+                const parts = val.split('/');
+                if (parts.length === 3) {
+                    const day = parts[0].trim() || padDay;
+                    const month = parts[1].trim() || padMonth;
+                    const year = parts[2].trim() || '2026';
+                    return day + '/' + month + '/' + year;
+                }
+            }
+            return val;
+        }
+
         // Estado do Aplicativo
         let appState = {
             queue: [],       // Array de arquivos: {fileId, filename, totalPages, pages: [], pagesInfo: [], intervalText: 'Todos', activePages: []}
@@ -1634,11 +1786,12 @@
             viewMode: 'grid',  // Modo de visualização: grid, list, all-grid
             
             // Parâmetros globais do formulário
-            processNumber: '9557/2026',
-            startDate: '21/05/2026',
+            processNumber: '/2026',
+            startDate: '//2026',
             startLeaf: 1,
             volumeLimit: 200,
             reserveTerms: true,
+            suppressIncompleteWarning: false,
             
             // Geometria
             scale: 1.0,
@@ -1728,10 +1881,12 @@
         // Configuração dos Inputs do Formulário
         const inputs = [processNumberInput, startDateInput, startLeafInput, volumeLimitInput, reserveTermsCheckbox];
         inputs.forEach(input => {
-            input.addEventListener('change', () => {
-                readFormInputs();
-                recalculateSequences();
-                renderGrid();
+            ['change', 'input'].forEach(evt => {
+                input.addEventListener(evt, () => {
+                    readFormInputs();
+                    recalculateSequences();
+                    updateAllStampText();
+                });
             });
         });
 
@@ -2595,11 +2750,11 @@
                             stamp.id = `stamp-page-${file.fileId}-${page.page_idx}`;
                             stamp.innerHTML = `
                                 <div class="stamp-text-container">
-                                    <div class="stamp-row-1" id="stamp-row1-p${file.fileId}-${page.page_idx}">Processo n.º 9557/2026</div>
+                                    <div class="stamp-row-1" id="stamp-row1-p${file.fileId}-${page.page_idx}">Processo n.º ${formatProcessNumberJS(appState.processNumber)}</div>
                                     <div class="stamp-row-2">
                                         <div class="stamp-col-left">
                                             <div>Data do início:</div>
-                                            <div id="stamp-date-p${file.fileId}-${page.page_idx}">21/05/2026</div>
+                                            <div id="stamp-date-p${file.fileId}-${page.page_idx}">${formatStartDateJS(appState.startDate)}</div>
                                         </div>
                                         <div class="stamp-col-right" id="stamp-leaf-p${file.fileId}-${page.page_idx}">Fl.18</div>
                                     </div>
@@ -2787,11 +2942,11 @@
                         stamp.id = `stamp-page-${file.fileId}-${page.page_idx}`;
                         stamp.innerHTML = `
                             <div class="stamp-text-container">
-                                <div class="stamp-row-1" id="stamp-row1-p${file.fileId}-${page.page_idx}">Processo n.º 9557/2026</div>
+                                <div class="stamp-row-1" id="stamp-row1-p${file.fileId}-${page.page_idx}">Processo n.º ${formatProcessNumberJS(appState.processNumber)}</div>
                                 <div class="stamp-row-2">
                                     <div class="stamp-col-left">
                                         <div>Data do início:</div>
-                                        <div id="stamp-date-p${file.fileId}-${page.page_idx}">21/05/2026</div>
+                                        <div id="stamp-date-p${file.fileId}-${page.page_idx}">${formatStartDateJS(appState.startDate)}</div>
                                     </div>
                                     <div class="stamp-col-right" id="stamp-leaf-p${file.fileId}-${page.page_idx}">Fl.18</div>
                                 </div>
@@ -3067,8 +3222,8 @@
                     const dateEl = document.getElementById(`stamp-date-p${file.fileId}-${info.page_idx}`);
                     const leafEl = document.getElementById(`stamp-leaf-p${file.fileId}-${info.page_idx}`);
 
-                    if (r1) r1.textContent = `Processo n.º ${appState.processNumber}`;
-                    if (dateEl) dateEl.textContent = appState.startDate;
+                    if (r1) r1.textContent = `Processo n.º ${formatProcessNumberJS(appState.processNumber)}`;
+                    if (dateEl) dateEl.textContent = formatStartDateJS(appState.startDate);
                     if (leafEl) leafEl.textContent = `Fl.${info.leaf_number}`;
                 });
             });
@@ -3156,8 +3311,73 @@
             return { baseName, ext };
         }
 
-        // Processamento em lote das ações rápidas (Salvar, Abrir, Imprimir)
+        function checkIncompleteFields() {
+            const proc = (appState.processNumber || '').trim();
+            const date = (appState.startDate || '').trim();
+            
+            const isProcIncomplete = !proc || proc === '/2026' || proc === '/' || proc.startsWith('/');
+            const isDateIncomplete = !date || date === '//2026' || date === '//' || date.startsWith('//');
+            
+            return {
+                isProcIncomplete,
+                isDateIncomplete,
+                hasIncomplete: isProcIncomplete || isDateIncomplete
+            };
+        }
+
         async function processBatchStamps(action) {
+            if (appState.queue.length === 0) return;
+            
+            const check = checkIncompleteFields();
+            if (!appState.suppressIncompleteWarning && check.hasIncomplete) {
+                showIncompleteFieldsModal(action, check);
+                return;
+            }
+            
+            await executeBatchProcess(action);
+        }
+
+        function showIncompleteFieldsModal(action, check) {
+            const modal = document.getElementById('modal-incomplete-fields');
+            const list = document.getElementById('incomplete-fields-list');
+            list.innerHTML = '';
+            
+            if (check.isProcIncomplete) {
+                const li = document.createElement('li');
+                li.textContent = 'Número do processo';
+                list.appendChild(li);
+            }
+            if (check.isDateIncomplete) {
+                const li = document.createElement('li');
+                li.textContent = 'Data de início';
+                list.appendChild(li);
+            }
+            
+            modal.classList.add('active');
+            
+            const btnProceed = document.getElementById('btn-proceed-empty');
+            const btnFill = document.getElementById('btn-fill-fields');
+            
+            btnProceed.onclick = async () => {
+                modal.classList.remove('active');
+                appState.suppressIncompleteWarning = true;
+                await executeBatchProcess(action);
+            };
+            
+            btnFill.onclick = () => {
+                modal.classList.remove('active');
+                if (check.isProcIncomplete && processNumberInput) {
+                    processNumberInput.focus();
+                    processNumberInput.select();
+                } else if (check.isDateIncomplete && startDateInput) {
+                    startDateInput.focus();
+                    startDateInput.select();
+                }
+            };
+        }
+
+        // Processamento em lote das ações rápidas (Salvar, Abrir, Imprimir)
+        async function executeBatchProcess(action) {
             if (appState.queue.length === 0) return;
 
             btnSaveBatch.disabled = true;
@@ -3291,5 +3511,28 @@
             }
         }
     </script>
+
+    <!-- Modal de Alerta para Campos Incompletos -->
+    <div class="modal-overlay" id="modal-incomplete-fields">
+        <div class="modal-card">
+            <div class="modal-header">
+                <div class="modal-icon-warning">
+                    <svg viewBox="0 0 24 24"><path d="M12 2L1 21h22L12 2zm1 14h-2v-2h2v2zm0-4h-2V10h2v2z"/></svg>
+                </div>
+                <div class="modal-title">Campos Incompletos</div>
+            </div>
+            <div class="modal-body">
+                <p>Atenção: Os seguintes campos do carimbo não foram preenchidos:</p>
+                <ul id="incomplete-fields-list">
+                    <!-- Preenchido via JS -->
+                </ul>
+                <p style="margin-top: 10px; font-size: 13px;">O carimbo será gerado com o espaçamento em branco preservado para preenchimento manual posterior.</p>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" id="btn-fill-fields">Preencher dados</button>
+                <button class="btn btn-primary" id="btn-proceed-empty" style="flex: 1;">Continuar mesmo assim</button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

@@ -350,3 +350,24 @@ def test_process_pdf_stamping_global_ref_width():
         assert abs(rect_p1.x0 - 672.0) < 1e-2
         
         out_doc.close()
+
+
+def test_format_process_number_and_start_date():
+    from app.core.pdf_processor import format_process_number, format_start_date
+
+    # Test default / empty process number (15 leading spaces)
+    expected_proc = " " * 15 + "/2026"
+    assert format_process_number("/2026") == expected_proc
+    assert format_process_number("") == expected_proc
+    assert format_process_number(None) == expected_proc
+    # Test populated process number
+    assert format_process_number("9557/2026") == "9557/2026"
+
+    # Test default / empty start date (8 spaces day, 9 spaces month)
+    expected_date = " " * 8 + "/" + " " * 9 + "/2026"
+    assert format_start_date("//2026") == expected_date
+    assert format_start_date("") == expected_date
+    assert format_start_date(None) == expected_date
+    # Test populated start date
+    assert format_start_date("21/05/2026") == "21/05/2026"
+

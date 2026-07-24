@@ -117,6 +117,47 @@ def check_volume_break(pages_info: List[Dict[str, Any]], volume_limit: int) -> T
             
     return False, ""
 
+def format_process_number(val: str) -> str:
+    """
+    Formata o número do processo para exibição no carimbo.
+    Se estiver vazio ou no modelo '/YYYY', preserva o espaçamento físico preenchendo com 15 espaços.
+    """
+    if not val:
+        return f"{' '*15}/2026"
+    val = val.strip()
+    if val == "/2026" or val.startswith("/"):
+        year = val[1:] if len(val) > 1 else "2026"
+        return f"{' '*15}/{year}"
+    if "/" in val:
+        parts = val.split("/", 1)
+        num_part = parts[0].strip()
+        year_part = parts[1].strip()
+        if not num_part:
+            return f"{' '*15}/{year_part}"
+        return f"{num_part}/{year_part}"
+    return val
+
+def format_start_date(val: str) -> str:
+    """
+    Formata a data de início para exibição no carimbo.
+    Se estiver vazia ou no modelo '//YYYY', preserva o espaçamento físico (8 espaços dia, 9 espaços mês).
+    """
+    if not val:
+        return f"{' '*8}/{' '*9}/2026"
+    val = val.strip()
+    if val == "//2026" or val == "//" or val.startswith("//"):
+        year = val[2:] if len(val) > 2 else "2026"
+        return f"{' '*8}/{' '*9}/{year if year else '2026'}"
+    if "/" in val:
+        parts = val.split("/")
+        if len(parts) == 3:
+            day, month, year = parts[0].strip(), parts[1].strip(), parts[2].strip()
+            d_str = day if day else " "*8
+            m_str = month if month else " "*9
+            y_str = year if year else "2026"
+            return f"{d_str}/{m_str}/{y_str}"
+    return val
+
 def draw_vector_stamp(
     page: fitz.Page,
     x0: float,
@@ -175,8 +216,11 @@ def draw_vector_stamp(
     # Todos os textos usam o mesmo tamanho de fonte: Century Gothic 8
     font_size = 8.0 * scale
     
+    formatted_proc = format_process_number(process_number)
+    formatted_date = format_start_date(start_date)
+
     # Linha 1: Processo n.º
-    process_text = f"Processo n.º {process_number}"
+    process_text = f"Processo n.º {formatted_proc}"
     left_padding = 6.0 * scale
     px = x0 + left_padding
     py = y0 + 11.5 * scale
@@ -195,7 +239,7 @@ def draw_vector_stamp(
     )
     shape.insert_text(
         (fitz.Point(x0 + left_padding, y0 + 34.5 * scale)) * derot,
-        start_date,
+        formatted_date,
         fontname=font_name,
         fontfile=font_file,
         fontsize=font_size,
