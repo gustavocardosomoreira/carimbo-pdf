@@ -108,8 +108,8 @@ UPLOAD_DIR = os.path.join(os.getcwd(), "uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 class StampCoords(BaseModel):
-    x0: float
-    y0: float
+    x0: Optional[float] = None
+    y0: Optional[float] = None
     scale: float
     ref_width: Optional[float] = None
     ref_height: Optional[float] = None

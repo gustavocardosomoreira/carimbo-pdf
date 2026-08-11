@@ -305,6 +305,9 @@ def process_pdf_stamping(
             
             # Determinar coordenadas e escala
             scale = 1.0
+            x0 = None
+            y0 = None
+            
             if custom_coords and str(idx) in custom_coords:
                 c = custom_coords[str(idx)]
                 x0 = c.get("x0")
@@ -315,14 +318,15 @@ def process_pdf_stamping(
                 y0 = global_coords.get("y0")
                 scale = global_coords.get("scale", 1.0)
                 ref_width = global_coords.get("ref_width")
-                if ref_width is not None and ref_width > 0:
-                    right_offset = ref_width - x0
-                    x0 = page_width - right_offset
-            else:
-                # Posicionamento padrão: Canto superior direito
-                w = 120.4 * scale
-                h = 60.0 * scale
-                x0 = page_width - 20.0 - w
+                if x0 is not None and y0 is not None:
+                    if ref_width is not None and ref_width > 0:
+                        right_offset = ref_width - x0
+                        x0 = page_width - right_offset
+                    
+            if x0 is None or y0 is None:
+                # Posicionamento padrão: Canto superior direito usando a escala
+                stamp_width = 120.4 * scale
+                x0 = page_width - 20.0 - stamp_width
                 y0 = 20.0
                 
             draw_vector_stamp(

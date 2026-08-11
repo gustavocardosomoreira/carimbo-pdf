@@ -269,3 +269,35 @@ def test_smart_active_session_cleanup(dummy_pdf, monkeypatch):
     # O arquivo inativo deve ser removido
     assert not os.path.exists(input_path)
 
+
+def test_api_stamp_default_coords_with_scale(dummy_pdf):
+    upload_response = client.post(
+        "/api/upload",
+        files={"file": ("documento_teste.pdf", io.BytesIO(dummy_pdf), "application/pdf")}
+    )
+    assert upload_response.status_code == 200
+    file_id = upload_response.json()["file_id"]
+    
+    # We stamp using default positioning (x0, y0 = null) but with a custom scale (1.2)
+    stamp_payload = {
+        "file_id": file_id,
+        "process_number": "4321/2026",
+        "start_date": "16/07/2026",
+        "start_leaf": 10,
+        "volume_limit": 200,
+        "reserve_terms": True,
+        "global_coords": {"x0": None, "y0": None, "scale": 1.2}
+    }
+    
+    stamp_response = client.post("/api/stamp", json=stamp_payload)
+    
+    # Clean up files
+    for filename in [f"{file_id}.pdf", f"{file_id}_stamped.pdf"]:
+        filepath = os.path.join(UPLOAD_DIR, filename)
+        if os.path.exists(filepath):
+            os.remove(filepath)
+            
+    assert stamp_response.status_code == 200
+    assert stamp_response.headers["content-type"] == "application/pdf"
+
+

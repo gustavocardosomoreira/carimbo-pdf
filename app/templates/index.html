@@ -3321,16 +3321,13 @@
                 for (let i = 0; i < filesToProcess.length; i++) {
                     const file = filesToProcess[i];
 
-                    let global_coords = null;
-                    if (appState.globalCoords.x0 !== null) {
-                        global_coords = {
-                            x0: appState.globalCoords.x0,
-                            y0: appState.globalCoords.y0,
-                            scale: appState.scale,
-                            ref_width: appState.globalCoords.refWidth,
-                            ref_height: appState.globalCoords.refHeight
-                        };
-                    }
+                    const global_coords = {
+                        x0: appState.globalCoords.x0,
+                        y0: appState.globalCoords.y0,
+                        scale: appState.scale,
+                        ref_width: appState.globalCoords.refWidth,
+                        ref_height: appState.globalCoords.refHeight
+                    };
 
                     let custom_coords = null;
                     if (appState.positionMode && appState.customCoords[file.fileId] && Object.keys(appState.customCoords[file.fileId]).length > 0) {

@@ -371,3 +371,43 @@ def test_format_process_number_and_start_date():
     # Test populated start date
     assert format_start_date("21/05/2026") == "21/05/2026"
 
+
+def test_process_pdf_stamping_default_coords_with_scale():
+    import tempfile
+    from app.core.pdf_processor import process_pdf_stamping
+    
+    with tempfile.TemporaryDirectory() as tmpdir:
+        pdf_path = os.path.join(tmpdir, "test.pdf")
+        output_path = os.path.join(tmpdir, "out.pdf")
+        
+        doc = fitz.open()
+        doc.new_page(width=595, height=842)
+        doc.save(pdf_path)
+        doc.close()
+        
+        # We stamp using default positioning (x0, y0 = None) and scale 1.2
+        process_pdf_stamping(
+            input_pdf_path=pdf_path,
+            output_pdf_path=output_path,
+            process_number="9557/2026",
+            start_date="21/05/2026",
+            start_leaf=1,
+            volume_limit=200,
+            reserve_terms=True,
+            global_coords={"x0": None, "y0": None, "scale": 1.2}
+        )
+        
+        assert os.path.exists(output_path)
+        out_doc = fitz.open(output_path)
+        drawings = out_doc[0].get_drawings()
+        assert len(drawings) > 0
+        rect = drawings[0]["rect"]
+        
+        # Default stamp width is 120.4, with scale 1.2 it should be 120.4 * 1.2 = 144.48
+        expected_width = 120.4 * 1.2
+        actual_width = rect.x1 - rect.x0
+        assert abs(actual_width - expected_width) < 1e-2
+        
+        out_doc.close()
+
+
