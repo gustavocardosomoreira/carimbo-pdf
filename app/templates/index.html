@@ -619,25 +619,6 @@
             align-items: center;
             gap: 12px;
         }
-
-        .modal-icon-warning {
-            width: 40px;
-            height: 40px;
-            border-radius: 12px;
-            background-color: #FEF3C7;
-            color: #D97706;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-        }
-
-        .modal-icon-warning svg {
-            width: 24px;
-            height: 24px;
-            fill: currentColor;
-        }
-
         .modal-title {
             font-size: 18px;
             font-weight: 700;
@@ -1786,12 +1767,11 @@
             viewMode: 'grid',  // Modo de visualização: grid, list, all-grid
             
             // Parâmetros globais do formulário
-            processNumber: '/2026',
-            startDate: '//2026',
+            processNumber: '9557/2026',
+            startDate: '21/05/2026',
             startLeaf: 1,
             volumeLimit: 200,
             reserveTerms: true,
-            suppressIncompleteWarning: false,
             
             // Geometria
             scale: 1.0,
@@ -2017,9 +1997,9 @@
         });
 
         // Ações Rápidas de Lote
-        btnSaveBatch.addEventListener('click', () => processBatchStamps('save'));
-        btnOpenBatch.addEventListener('click', () => processBatchStamps('open'));
-        btnPrintBatch.addEventListener('click', () => processBatchStamps('print'));
+        btnSaveBatch.addEventListener('click', () => executeBatchProcess('save'));
+        btnOpenBatch.addEventListener('click', () => executeBatchProcess('open'));
+        btnPrintBatch.addEventListener('click', () => executeBatchProcess('print'));
 
         // Clique no alerta de volume rola até as páginas afetadas e as faz piscar
         volumeAlertContainer.addEventListener('click', () => {
@@ -3311,70 +3291,6 @@
             return { baseName, ext };
         }
 
-        function checkIncompleteFields() {
-            const proc = (appState.processNumber || '').trim();
-            const date = (appState.startDate || '').trim();
-            
-            const isProcIncomplete = !proc || proc === '/2026' || proc === '/' || proc.startsWith('/');
-            const isDateIncomplete = !date || date === '//2026' || date === '//' || date.startsWith('//');
-            
-            return {
-                isProcIncomplete,
-                isDateIncomplete,
-                hasIncomplete: isProcIncomplete || isDateIncomplete
-            };
-        }
-
-        async function processBatchStamps(action) {
-            if (appState.queue.length === 0) return;
-            
-            const check = checkIncompleteFields();
-            if (!appState.suppressIncompleteWarning && check.hasIncomplete) {
-                showIncompleteFieldsModal(action, check);
-                return;
-            }
-            
-            await executeBatchProcess(action);
-        }
-
-        function showIncompleteFieldsModal(action, check) {
-            const modal = document.getElementById('modal-incomplete-fields');
-            const list = document.getElementById('incomplete-fields-list');
-            list.innerHTML = '';
-            
-            if (check.isProcIncomplete) {
-                const li = document.createElement('li');
-                li.textContent = 'Número do processo';
-                list.appendChild(li);
-            }
-            if (check.isDateIncomplete) {
-                const li = document.createElement('li');
-                li.textContent = 'Data de início';
-                list.appendChild(li);
-            }
-            
-            modal.classList.add('active');
-            
-            const btnProceed = document.getElementById('btn-proceed-empty');
-            const btnFill = document.getElementById('btn-fill-fields');
-            
-            btnProceed.onclick = async () => {
-                modal.classList.remove('active');
-                appState.suppressIncompleteWarning = true;
-                await executeBatchProcess(action);
-            };
-            
-            btnFill.onclick = () => {
-                modal.classList.remove('active');
-                if (check.isProcIncomplete && processNumberInput) {
-                    processNumberInput.focus();
-                    processNumberInput.select();
-                } else if (check.isDateIncomplete && startDateInput) {
-                    startDateInput.focus();
-                    startDateInput.select();
-                }
-            };
-        }
 
         // Processamento em lote das ações rápidas (Salvar, Abrir, Imprimir)
         async function executeBatchProcess(action) {
@@ -3511,28 +3427,5 @@
             }
         }
     </script>
-
-    <!-- Modal de Alerta para Campos Incompletos -->
-    <div class="modal-overlay" id="modal-incomplete-fields">
-        <div class="modal-card">
-            <div class="modal-header">
-                <div class="modal-icon-warning">
-                    <svg viewBox="0 0 24 24"><path d="M12 2L1 21h22L12 2zm1 14h-2v-2h2v2zm0-4h-2V10h2v2z"/></svg>
-                </div>
-                <div class="modal-title">Campos Incompletos</div>
-            </div>
-            <div class="modal-body">
-                <p>Atenção: Os seguintes campos do carimbo não foram preenchidos:</p>
-                <ul id="incomplete-fields-list">
-                    <!-- Preenchido via JS -->
-                </ul>
-                <p style="margin-top: 10px; font-size: 13px;">O carimbo será gerado com o espaçamento em branco preservado para preenchimento manual posterior.</p>
-            </div>
-            <div class="modal-actions">
-                <button class="btn btn-secondary" id="btn-fill-fields">Preencher dados</button>
-                <button class="btn btn-primary" id="btn-proceed-empty" style="flex: 1;">Continuar mesmo assim</button>
-            </div>
-        </div>
-    </div>
 </body>
 </html>
