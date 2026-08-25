@@ -40,7 +40,7 @@ def parse_page_interval(interval_str: str, total_pages: int) -> List[int]:
 
 def calculate_leaf_sequence(
     total_pages: int,
-    start_leaf: int,
+    start_leaf: int | None,
     volume_limit: int,
     reserve_terms: bool,
     active_pages: List[int] = None
@@ -70,7 +70,7 @@ def calculate_leaf_sequence(
             })
         else:
             is_term = False
-            if reserve_terms:
+            if reserve_terms and current_leaf is not None:
                 if current_leaf > 1 and (current_leaf % volume_limit == 0 or current_leaf % volume_limit == 1):
                     is_term = True
                     
@@ -91,7 +91,8 @@ def calculate_leaf_sequence(
                     "is_term": False,
                     "is_active": True
                 })
-                current_leaf += 1
+                if current_leaf is not None:
+                    current_leaf += 1
                 
     return pages_info
 
@@ -165,7 +166,7 @@ def draw_vector_stamp(
     scale: float,
     process_number: str,
     start_date: str,
-    leaf_number: int
+    leaf_number: int | None
 ):
     """
     Desenha o carimbo vetorial nas coordenadas especificadas utilizando PyMuPDF.
@@ -248,7 +249,7 @@ def draw_vector_stamp(
     )
     
     # Linha 2 (Direita): Fl. (Alinhado à esquerda com o mesmo recuo)
-    fl_text = f"Fl.{leaf_number}"
+    fl_text = f"Fl.{leaf_number}" if leaf_number is not None else "Fl."
     fl_x = x_split + left_padding
     fl_y = y0 + 29.5 * scale
     shape.insert_text(fitz.Point(fl_x, fl_y) * derot, fl_text, fontname=font_name, fontfile=font_file, fontsize=font_size, color=(0, 0, 0), rotate=page.rotation)

@@ -118,7 +118,7 @@ class StampRequest(BaseModel):
     file_id: str
     process_number: str
     start_date: str
-    start_leaf: int
+    start_leaf: Optional[int] = None
     volume_limit: int
     reserve_terms: bool
     global_coords: Optional[StampCoords] = None

@@ -2298,7 +2298,10 @@
         function readFormInputs() {
             appState.processNumber = processNumberInput.value;
             appState.startDate = startDateInput.value;
-            appState.startLeaf = parseInt(startLeafInput.value) || 1;
+            
+            const leafVal = startLeafInput.value.trim();
+            appState.startLeaf = leafVal === "" ? null : (parseInt(leafVal) || 1);
+            
             appState.volumeLimit = parseInt(volumeLimitInput.value) || 200;
             appState.reserveTerms = reserveTermsCheckbox.checked;
         }
@@ -2391,7 +2394,7 @@
                         });
                     } else {
                         let isTerm = false;
-                        if (appState.reserveTerms) {
+                        if (appState.reserveTerms && currentLeaf !== null) {
                             if (currentLeaf > 1 && (currentLeaf % appState.volumeLimit === 0 || currentLeaf % appState.volumeLimit === 1)) {
                                 isTerm = true;
                             }
@@ -2414,7 +2417,7 @@
                                 is_term: false,
                                 is_active: true
                             });
-                            currentLeaf += 1;
+                            if (currentLeaf !== null) currentLeaf += 1;
                         }
                     }
                 }
@@ -2736,7 +2739,7 @@
                                             <div>Data do início:</div>
                                             <div id="stamp-date-p${file.fileId}-${page.page_idx}">${formatStartDateJS(appState.startDate)}</div>
                                         </div>
-                                        <div class="stamp-col-right" id="stamp-leaf-p${file.fileId}-${page.page_idx}">Fl.${info ? info.leaf_number : ''}</div>
+                                        <div class="stamp-col-right" id="stamp-leaf-p${file.fileId}-${page.page_idx}">Fl.${(info && info.leaf_number !== null) ? info.leaf_number : ''}</div>
                                     </div>
                                     <div class="stamp-row-3">Rubrica</div>
                                 </div>
@@ -2928,7 +2931,7 @@
                                         <div>Data do início:</div>
                                         <div id="stamp-date-p${file.fileId}-${page.page_idx}">${formatStartDateJS(appState.startDate)}</div>
                                     </div>
-                                    <div class="stamp-col-right" id="stamp-leaf-p${file.fileId}-${page.page_idx}">Fl.${info ? info.leaf_number : ''}</div>
+                                    <div class="stamp-col-right" id="stamp-leaf-p${file.fileId}-${page.page_idx}">Fl.${(info && info.leaf_number !== null) ? info.leaf_number : ''}</div>
                                 </div>
                                 <div class="stamp-row-3">Rubrica</div>
                             </div>
@@ -3204,7 +3207,7 @@
 
                     if (r1) r1.textContent = `Processo n.º ${formatProcessNumberJS(appState.processNumber)}`;
                     if (dateEl) dateEl.textContent = formatStartDateJS(appState.startDate);
-                    if (leafEl) leafEl.textContent = `Fl.${info.leaf_number}`;
+                    if (leafEl) leafEl.textContent = info.leaf_number !== null ? `Fl.${info.leaf_number}` : 'Fl.';
                 });
             });
         }
