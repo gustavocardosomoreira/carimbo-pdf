@@ -173,6 +173,53 @@
             margin: 0;
         }
         .stamp-data-input[type="number"] { -moz-appearance: textfield; }
+        
+        /* D-Pad Cantoneiras (Alinhamento da Folha) */
+        .dpad-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 32px);
+            grid-template-rows: repeat(3, 32px);
+            gap: 4px;
+            justify-content: center;
+            margin-bottom: 8px;
+        }
+        .dpad-btn {
+            background: var(--bg-sidebar);
+            border: 1px solid var(--border-color);
+            border-radius: 8px; /* Charm shape */
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+        }
+        .dpad-btn:hover {
+            background: var(--bg-main);
+            border-color: #ccc;
+        }
+        .dpad-btn.active {
+            background: rgba(228, 84, 75, 0.08); /* brand with opacity */
+            border-color: var(--brand, #E4544B);
+            color: var(--brand, #E4544B);
+        }
+        .corner-icon {
+            width: 10px;
+            height: 10px;
+            border: 2px solid transparent;
+        }
+        .dpad-btn.top-left .corner-icon { border-top-color: currentColor; border-left-color: currentColor; position: absolute; top: 4px; left: 4px; }
+        .dpad-btn.top-right .corner-icon { border-top-color: currentColor; border-right-color: currentColor; position: absolute; top: 4px; right: 4px; }
+        .dpad-btn.bottom-left .corner-icon { border-bottom-color: currentColor; border-left-color: currentColor; position: absolute; bottom: 4px; left: 4px; }
+        .dpad-btn.bottom-right .corner-icon { border-bottom-color: currentColor; border-right-color: currentColor; position: absolute; bottom: 4px; right: 4px; }
+        
+        .dpad-btn.center .corner-icon {
+            border-color: currentColor;
+            border-radius: 2px;
+            width: 6px;
+            height: 6px;
+        }
 
         /* Active file pill */
         .active-file-pill {
@@ -1542,8 +1589,8 @@
                         <i class="chevron">›</i> Opções avançadas
                     </summary>
                     <div class="advanced-content">
-                        <!-- Escala do Carimbo (Moved here as it is rarely modified) -->
-                        <div class="scale-slider-container" style="margin-bottom: 4px;">
+                        <!-- Escala do Carimbo -->
+                        <div class="scale-slider-container" style="margin-bottom: 12px;">
                             <div class="scale-header">
                                 <span style="font-family:Graphik,Arial,sans-serif;font-size:13px;font-weight:500;">Escala do Carimbo</span>
                                 <span class="scale-val" id="scale-val" style="font-family:Graphik,Arial,sans-serif;font-size:13px;font-weight:600;">100%</span>
@@ -1552,7 +1599,35 @@
                                 <input type="range" id="scale-range" min="50" max="150" value="100">
                             </div>
                         </div>
-                        <div class="input-group">
+
+                        <!-- Zoom da Folha (Background) -->
+                        <div class="scale-slider-container" style="margin-bottom: 12px; border-top: 1px solid var(--border-color); padding-top: 12px;">
+                            <div class="scale-header">
+                                <span style="font-family:Graphik,Arial,sans-serif;font-size:13px;font-weight:500;">Zoom da Folha</span>
+                                <span class="scale-val" id="bg-zoom-val" style="font-family:Graphik,Arial,sans-serif;font-size:13px;font-weight:600;">100%</span>
+                            </div>
+                            <div class="scale-input-wrapper" style="margin-bottom: 12px;">
+                                <input type="range" id="bg-zoom-range" min="50" max="100" value="100">
+                            </div>
+
+                            <!-- Alinhamento da Folha (D-Pad) -->
+                            <div style="font-family:Graphik,Arial,sans-serif;font-size:13px;font-weight:500; text-align:center; margin-bottom: 6px; color: var(--text-secondary);">Alinhamento da Folha</div>
+                            <div class="dpad-grid" id="bg-align-dpad">
+                                <button class="dpad-btn top-left" data-align="top-left"><div class="corner-icon"></div></button>
+                                <div></div>
+                                <button class="dpad-btn top-right" data-align="top-right"><div class="corner-icon"></div></button>
+                                
+                                <div></div>
+                                <button class="dpad-btn center active" data-align="center"><div class="corner-icon"></div></button>
+                                <div></div>
+                                
+                                <button class="dpad-btn bottom-left" data-align="bottom-left"><div class="corner-icon"></div></button>
+                                <div></div>
+                                <button class="dpad-btn bottom-right" data-align="bottom-right"><div class="corner-icon"></div></button>
+                            </div>
+                        </div>
+
+                        <div class="input-group" style="border-top: 1px solid var(--border-color); padding-top: 12px;">
                             <label for="volume-limit">Limite de Volume</label>
                             <input type="number" id="volume-limit" value="200" min="10">
                         </div>
@@ -1772,6 +1847,8 @@
             startLeaf: 1,
             volumeLimit: 200,
             reserveTerms: true,
+            bgZoom: 1.0,
+            bgAlign: 'center',
             
             // Geometria
             scale: 1.0,
@@ -1888,7 +1965,7 @@
             renderGrid();
         });
 
-        // Slider de Escala
+        // Slider de Escala do Carimbo
         scaleRange.addEventListener('input', (e) => {
             const val = parseInt(e.target.value);
             scaleValLabel.textContent = val + '%';
@@ -1897,6 +1974,28 @@
             appState.scale = val / 100.0;
             
             updateStampGeometries();
+        });
+
+        // Controles de Background (Folha Original)
+        const bgZoomRange = document.getElementById('bg-zoom-range');
+        const bgZoomVal = document.getElementById('bg-zoom-val');
+        const dpadBtns = document.querySelectorAll('.dpad-btn');
+        
+        bgZoomRange.addEventListener('input', (e) => {
+            const val = parseInt(e.target.value);
+            bgZoomVal.textContent = val + '%';
+            appState.bgZoom = val / 100.0;
+            updateBgGeometries();
+        });
+
+        dpadBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const align = e.currentTarget.getAttribute('data-align');
+                appState.bgAlign = align;
+                dpadBtns.forEach(b => b.classList.remove('active'));
+                e.currentTarget.classList.add('active');
+                updateBgGeometries();
+            });
         });
 
         // Posicionamento Customizado (Alternador)
@@ -2960,6 +3059,7 @@
                 });
             }
 
+            updateBgGeometries();
             updateStampGeometries();
             updateAllStampText();
             updateActiveDocumentBadges();
@@ -3101,6 +3201,26 @@
             document.addEventListener('mouseup', () => {
                 isDragging = false;
                 isResizing = false;
+            });
+        }
+
+        // Atualiza estilo das folhas originais de fundo (zoom e alinhamento)
+        function updateBgGeometries() {
+            const zoom = appState.bgZoom;
+            const align = appState.bgAlign;
+            
+            document.querySelectorAll('.page-img').forEach(img => {
+                img.style.position = 'absolute';
+                img.style.width = (zoom * 100) + '%';
+                img.style.height = (zoom * 100) + '%';
+                
+                if (align.includes('top')) { img.style.top = '0'; }
+                else if (align.includes('bottom')) { img.style.top = (100 - zoom * 100) + '%'; }
+                else { img.style.top = ((100 - zoom * 100) / 2) + '%'; }
+                
+                if (align.includes('left')) { img.style.left = '0'; }
+                else if (align.includes('right')) { img.style.left = (100 - zoom * 100) + '%'; }
+                else { img.style.left = ((100 - zoom * 100) / 2) + '%'; }
             });
         }
 
@@ -3353,7 +3473,9 @@
                         reserve_terms: appState.reserveTerms,
                         global_coords: global_coords,
                         custom_coords: custom_coords,
-                        active_pages: file.activePages
+                        active_pages: file.activePages,
+                        bg_zoom: appState.bgZoom,
+                        bg_align: appState.bgAlign
                     };
 
                     const response = await fetch('/api/stamp', {

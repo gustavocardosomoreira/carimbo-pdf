@@ -124,6 +124,8 @@ class StampRequest(BaseModel):
     global_coords: Optional[StampCoords] = None
     custom_coords: Optional[Dict[str, StampCoords]] = None
     active_pages: Optional[List[int]] = None
+    bg_zoom: Optional[float] = 1.0
+    bg_align: Optional[str] = "center"
 
 @app.get("/health")
 async def health_check():
@@ -142,6 +144,13 @@ async def serve_frontend(request: Request):
     response.headers["Pragma"] = "no-cache"
     response.headers["Expires"] = "0"
     return response
+
+@app.get("/prototype", response_class=HTMLResponse)
+async def serve_prototype(request: Request):
+    """
+    Route for throwaway UI prototype.
+    """
+    return templates.TemplateResponse(request, "prototype.html")
 
 def _read_and_parse_pdf(input_path: str):
     """
@@ -271,7 +280,9 @@ async def stamp_pdf_route(request: StampRequest):
             reserve_terms=request.reserve_terms,
             global_coords=global_coords_dict,
             custom_coords=custom_coords_dict,
-            active_pages=request.active_pages
+            active_pages=request.active_pages,
+            bg_zoom=request.bg_zoom,
+            bg_align=request.bg_align
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro no processamento do carimbo: {str(e)}")

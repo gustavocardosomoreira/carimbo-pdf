@@ -277,7 +277,9 @@ def process_pdf_stamping(
     reserve_terms: bool,
     global_coords: Dict[str, Any] = None,
     custom_coords: Dict[str, Dict[str, Any]] = None,
-    active_pages: List[int] = None
+    active_pages: List[int] = None,
+    bg_zoom: float = 1.0,
+    bg_align: str = "center"
 ) -> Tuple[List[Dict[str, Any]], bool, str]:
     """
     Abre o PDF, calcula a sequência e estampa cada página de acordo com os parâmetros e coordenadas.
@@ -298,6 +300,35 @@ def process_pdf_stamping(
         
         for idx, page in enumerate(doc):
             info = pages_info[idx]
+            
+            # Aplica zoom e alinhamento na folha original (independente de ter carimbo ou não)
+            if bg_zoom < 1.0:
+                page_width = page.rect.width
+                page_height = page.rect.height
+                
+                scaled_w = page_width * bg_zoom
+                scaled_h = page_height * bg_zoom
+                
+                dx = 0
+                if "left" in bg_align: dx = 0
+                elif "right" in bg_align: dx = page_width - scaled_w
+                else: dx = (page_width - scaled_w) / 2
+                
+                dy = 0
+                if "top" in bg_align: dy = page_height - scaled_h
+                elif "bottom" in bg_align: dy = 0
+                else: dy = (page_height - scaled_h) / 2
+                
+                page.clean_contents()
+                try:
+                    xref = page.get_contents()[0]
+                    stream = doc.xref_stream(xref)
+                    # Envolve num bloco de estado q...Q e aplica a matriz de transformação (cm)
+                    transform = f"q {bg_zoom:.5f} 0 0 {bg_zoom:.5f} {dx:.5f} {dy:.5f} cm\n".encode("utf-8")
+                    doc.update_stream(xref, transform + stream + b"\nQ")
+                except IndexError:
+                    pass
+
             if not info["should_stamp"]:
                 continue
                 
