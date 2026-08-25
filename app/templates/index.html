@@ -2713,7 +2713,7 @@
                     <div class="stamp-text-container">
                         <table class="stamp-table">
                             <tr style="height: 25%">
-                                <td colspan="2" class="rotulo" style="text-align: center; white-space: nowrap; font-size: 7.5px; padding: 0 2% !important;">Prefeitura Municipal de Maricá</td>
+                                <td colspan="2" class="rotulo" style="text-align: center; white-space: nowrap; font-size: 6.0px; padding: 0 2% !important;">Prefeitura Municipal de Maricá</td>
                             </tr>
                             <tr style="height: 25%">
                                 <td class="rotulo" style="width: 42%;">Processo</td>
@@ -3334,8 +3334,10 @@
                     let currentBaseWidth = STAMP_BASE_WIDTH;
                     let currentBaseHeight = STAMP_BASE_HEIGHT;
                     if (appState.stampModel === 'compacto') {
+                        currentBaseWidth = 102.34;
                         currentBaseHeight = 44.0;
                     } else if (appState.stampModel === 'mini') {
+                        currentBaseWidth = 102.34;
                         currentBaseHeight = 33.0;
                     }
 
@@ -3408,6 +3410,14 @@
                             stampTable.querySelectorAll('td').forEach(td => {
                                 td.style.setProperty('border-width', borderWidthPx, 'important');
                             });
+                            
+                            if (appState.stampModel === 'compacto') {
+                                const titleTd = stampTable.querySelector('td[colspan="2"]');
+                                if (titleTd) {
+                                    const titleFontSizePx = 6.0 * s * ratio;
+                                    titleTd.style.fontSize = titleFontSizePx + 'px';
+                                }
+                            }
                         }
                     }
                 });

@@ -181,10 +181,10 @@ def draw_vector_stamp(
     
     if stamp_model == "compacto":
         H = 44.0 * scale
-        W = 120.4 * scale
+        W = 102.34 * scale
     elif stamp_model == "mini":
         H = 33.0 * scale
-        W = 120.4 * scale
+        W = 102.34 * scale
     else:
         H = 60.0 * scale
         
@@ -256,10 +256,10 @@ def draw_vector_stamp(
         
         if stamp_model == "compacto":
             title = "Prefeitura Municipal de Maricá"
-            title_width = _get_text_width(title, 7.5 * scale)
+            title_width = _get_text_width(title, 6.0 * scale)
             title_x = x0 + (W - title_width) / 2.0
-            title_y_base = y0 + (row_height * 0.5) + (7.5 * scale * 0.35)
-            shape.insert_text(fitz.Point(title_x, title_y_base) * derot, title, fontname=font_name, fontfile=font_file, fontsize=7.5 * scale, color=(0, 0, 0), rotate=page.rotation)
+            title_y_base = y0 + (row_height * 0.5) + (6.0 * scale * 0.35)
+            shape.insert_text(fitz.Point(title_x, title_y_base) * derot, title, fontname=font_name, fontfile=font_file, fontsize=6.0 * scale, color=(0, 0, 0), rotate=page.rotation)
             row_idx = 1
             
         leaf_text = f"{leaf_number}" if leaf_number is not None else ""
