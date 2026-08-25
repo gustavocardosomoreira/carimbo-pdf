@@ -284,9 +284,15 @@ def draw_vector_stamp(
             if val:
                 val_width = _get_text_width(val.strip(), font_size)
                 
-                # Right align text: x1 - padding - val_width
-                right_padding = 4.0 * scale
-                val_x = x1 - right_padding - val_width
+                if label == "Folha":
+                    x_split = x0 + W * 0.42
+                    right_col_width = W * 0.58
+                    val_x = x_split + (right_col_width - val_width) / 2.0
+                else:
+                    # Right align text: x1 - padding - val_width
+                    right_padding = 4.0 * scale
+                    val_x = x1 - right_padding - val_width
+                    
                 shape.insert_text(fitz.Point(val_x, y_base) * derot, val.strip(), fontname=font_name, fontfile=font_file, fontsize=font_size, color=(0, 0, 0), rotate=page.rotation)
     else:
         # Padrao
