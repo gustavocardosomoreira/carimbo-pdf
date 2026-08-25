@@ -1569,7 +1569,7 @@
                     <div class="stamp-data-group">
                         <div class="stamp-data-row">
                             <span class="stamp-data-label">Modelo</span>
-                            <select class="stamp-data-input" id="stamp-model" style="text-align: right; direction: rtl; cursor: pointer; padding-right: 8px;">
+                            <select class="stamp-data-input" id="stamp-model">
                                 <option value="padrao">Padrão</option>
                                 <option value="compacto">Compacto</option>
                                 <option value="mini">Mini</option>
@@ -2716,15 +2716,15 @@
                                 <td colspan="2" class="rotulo" style="text-align: center; white-space: nowrap; font-size: 7.5px; padding: 0 2% !important;">Prefeitura Municipal de Maricá</td>
                             </tr>
                             <tr style="height: 25%">
-                                <td class="rotulo" style="width: 45%;">Processo</td>
-                                <td class="valor" id="stamp-proc-val-p${fileId}-${pageIdx}" style="width: 55%;">${formattedProc}</td>
+                                <td class="rotulo" style="width: 42%;">Processo</td>
+                                <td class="valor" id="stamp-proc-val-p${fileId}-${pageIdx}" style="width: 58%;">${formattedProc}</td>
                             </tr>
                             <tr style="height: 25%">
-                                <td class="rotulo" style="width: 45%;">Folha</td>
+                                <td class="rotulo" style="width: 42%;">Folha</td>
                                 <td class="valor" id="stamp-leaf-val-p${fileId}-${pageIdx}">${leafText}</td>
                             </tr>
                             <tr style="height: 25%">
-                                <td class="rotulo" style="width: 45%;">Rubrica</td>
+                                <td class="rotulo" style="width: 42%;">Rubrica</td>
                                 <td class="valor"></td>
                             </tr>
                         </table>
@@ -2736,15 +2736,15 @@
                     <div class="stamp-text-container">
                         <table class="stamp-table">
                             <tr style="height: 33.33%">
-                                <td class="rotulo" style="width: 45%;">Processo</td>
-                                <td class="valor" id="stamp-proc-val-p${fileId}-${pageIdx}" style="width: 55%;">${formattedProc}</td>
+                                <td class="rotulo" style="width: 42%;">Processo</td>
+                                <td class="valor" id="stamp-proc-val-p${fileId}-${pageIdx}" style="width: 58%;">${formattedProc}</td>
                             </tr>
                             <tr style="height: 33.33%">
-                                <td class="rotulo" style="width: 45%;">Folha</td>
+                                <td class="rotulo" style="width: 42%;">Folha</td>
                                 <td class="valor" id="stamp-leaf-val-p${fileId}-${pageIdx}">${leafText}</td>
                             </tr>
                             <tr style="height: 33.33%">
-                                <td class="rotulo" style="width: 45%;">Rubrica</td>
+                                <td class="rotulo" style="width: 42%;">Rubrica</td>
                                 <td class="valor"></td>
                             </tr>
                         </table>
@@ -3334,8 +3334,10 @@
                     let currentBaseWidth = STAMP_BASE_WIDTH;
                     let currentBaseHeight = STAMP_BASE_HEIGHT;
                     if (appState.stampModel === 'compacto') {
+                        currentBaseWidth = 105.0;
                         currentBaseHeight = 44.0;
                     } else if (appState.stampModel === 'mini') {
+                        currentBaseWidth = 105.0;
                         currentBaseHeight = 33.0;
                     }
 

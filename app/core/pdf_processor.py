@@ -181,8 +181,10 @@ def draw_vector_stamp(
     
     if stamp_model == "compacto":
         H = 44.0 * scale
+        W = 105.0 * scale
     elif stamp_model == "mini":
         H = 33.0 * scale
+        W = 105.0 * scale
     else:
         H = 60.0 * scale
         
@@ -207,7 +209,7 @@ def draw_vector_stamp(
             shape.draw_line(fitz.Point(x0, yh) * derot, fitz.Point(x1, yh) * derot)
             
         # Divisória vertical
-        x_split = x0 + W * 0.45
+        x_split = x0 + W * 0.42
         y_start_vert = y0 + row_height if stamp_model == "compacto" else y0
         shape.draw_line(fitz.Point(x_split, y_start_vert) * derot, fitz.Point(x_split, y1) * derot)
     else:
