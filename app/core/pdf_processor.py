@@ -2,9 +2,9 @@ import fitz  # PyMuPDF
 from typing import Dict, List, Tuple, Any
 
 STAMP_MODELS = {
-    "padrao": {"width": 120.4, "height": 60.0},
-    "compacto": {"width": 102.34, "height": 44.0},
-    "mini": {"width": 102.34, "height": 33.0}
+    "padrao": {"W": 120.4, "H": 60.0},
+    "compacto": {"W": 102.34, "H": 44.0},
+    "mini": {"W": 102.34, "H": 33.0}
 }
 
 def parse_page_interval(interval_str: str, total_pages: int) -> List[int]:
@@ -183,9 +183,9 @@ def draw_vector_stamp(
     """
     import os
     # Proporções base
-    model_info = STAMP_MODELS.get(stamp_model, STAMP_MODELS["padrao"])
-    W = model_info["width"] * scale
-    H = model_info["height"] * scale
+    model_conf = STAMP_MODELS.get(stamp_model, STAMP_MODELS["padrao"])
+    W = model_conf["W"] * scale
+    H = model_conf["H"] * scale
     
     x1 = x0 + W
     y1 = y0 + H
@@ -402,8 +402,8 @@ def process_pdf_stamping(
                     
             if x0 is None or y0 is None:
                 # Posicionamento padrão: Canto superior direito usando a escala
-                model_info = STAMP_MODELS.get(stamp_model, STAMP_MODELS["padrao"])
-                stamp_width = model_info["width"] * scale
+                model_conf = STAMP_MODELS.get(stamp_model, STAMP_MODELS["padrao"])
+                stamp_width = model_conf["W"] * scale
                 x0 = page_width - 20.0 - stamp_width
                 y0 = 20.0
                 

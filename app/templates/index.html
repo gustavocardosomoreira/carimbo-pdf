@@ -1821,7 +1821,6 @@
             }
         });
 
-        // Configurações padrão do sistema
         const STAMP_MODELS = {
             padrao: { width: 120.4, height: 60.0 },
             compacto: { width: 102.34, height: 44.0 },
@@ -3250,8 +3249,8 @@
                 } else if (isResizing) {
                     const dx = e.clientX - startX;
                     const newWidth = Math.max(70, Math.min(210, startWidth + dx));
-                    const modelInfo = STAMP_MODELS[appState.stampModel] || STAMP_MODELS.padrao;
-                    const newScale = (newWidth / ratio) / modelInfo.width;
+                    const modelConf = STAMP_MODELS[appState.stampModel] || STAMP_MODELS.padrao;
+                    const newScale = (newWidth / ratio) / modelConf.width;
                     const clampedScale = Math.max(0.5, Math.min(1.5, newScale));
 
                     if (appState.positionMode) {
@@ -3318,9 +3317,9 @@
 
                     let x0, y0, s;
 
-                    const modelInfo = STAMP_MODELS[appState.stampModel] || STAMP_MODELS.padrao;
-                    const currentBaseWidth = modelInfo.width;
-                    const currentBaseHeight = modelInfo.height;
+                    const modelConf = STAMP_MODELS[appState.stampModel] || STAMP_MODELS.padrao;
+                    const currentBaseWidth = modelConf.width;
+                    const currentBaseHeight = modelConf.height;
 
                     if (appState.positionMode && appState.customCoords[file.fileId]?.[page.page_idx]) {
                         const coords = appState.customCoords[file.fileId][page.page_idx];
