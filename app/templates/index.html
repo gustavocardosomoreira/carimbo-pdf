@@ -3402,6 +3402,14 @@
                         if (row3) {
                             row3.style.fontSize = 'inherit';
                         }
+                        
+                        const stampTable = textContainer.querySelector('.stamp-table');
+                        if (stampTable) {
+                            stampTable.style.setProperty('border-width', borderWidthPx, 'important');
+                            stampTable.querySelectorAll('td').forEach(td => {
+                                td.style.setProperty('border-width', borderWidthPx, 'important');
+                            });
+                        }
                     }
                 });
             });

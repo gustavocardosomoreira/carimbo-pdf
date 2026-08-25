@@ -246,12 +246,17 @@ def draw_vector_stamp(
         num_rows = 4 if stamp_model == "compacto" else 3
         row_height = H / num_rows
         
+        def _get_text_width(text, f_size):
+            if font_file:
+                return fitz.Font(fontfile=font_file).text_length(text, fontsize=f_size)
+            try:
+                return fitz.getTextlength(text, fontname=font_name, fontsize=f_size)
+            except AttributeError:
+                return fitz.get_text_length(text, fontname=font_name, fontsize=f_size)
+        
         if stamp_model == "compacto":
             title = "Prefeitura Municipal de Maricá"
-            try:
-                title_width = fitz.getTextlength(title, fontname=font_name, fontsize=7.5 * scale)
-            except:
-                title_width = fitz.get_text_length(title, fontname=font_name, fontfile=font_file, fontsize=7.5 * scale)
+            title_width = _get_text_width(title, 7.5 * scale)
             title_x = x0 + (W - title_width) / 2.0
             title_y_base = y0 + (row_height * 0.5) + (7.5 * scale * 0.35)
             shape.insert_text(fitz.Point(title_x, title_y_base) * derot, title, fontname=font_name, fontfile=font_file, fontsize=7.5 * scale, color=(0, 0, 0), rotate=page.rotation)
@@ -277,10 +282,7 @@ def draw_vector_stamp(
             shape.insert_text(fitz.Point(x0 + left_padding, y_base) * derot, label, fontname=font_name, fontfile=font_file, fontsize=font_size, color=(0, 0, 0), rotate=page.rotation)
             
             if val:
-                try:
-                    val_width = fitz.getTextlength(val.strip(), fontname=font_name, fontsize=font_size)
-                except:
-                    val_width = fitz.get_text_length(val.strip(), fontname=font_name, fontfile=font_file, fontsize=font_size)
+                val_width = _get_text_width(val.strip(), font_size)
                 
                 # Right align text: x1 - padding - val_width
                 right_padding = 4.0 * scale
