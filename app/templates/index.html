@@ -1829,18 +1829,19 @@
         const MARGIN_TOP = 20.0;
 
         function formatProcessNumberJS(val) {
-            const pad15 = '\u00A0'.repeat(15);
-            if (!val) return pad15 + '/2026';
+            const isCompact = (appState.stampModel === 'compacto' || appState.stampModel === 'mini');
+            const padSpace = isCompact ? '\u00A0' : '\u00A0'.repeat(15);
+            if (!val) return padSpace + '/2026';
             val = val.trim();
             if (val === '/2026' || val === '/' || val.startsWith('/')) {
                 const year = val.length > 1 ? val.slice(1) : '2026';
-                return pad15 + '/' + (year || '2026');
+                return padSpace + '/' + (year || '2026');
             }
             if (val.includes('/')) {
                 const parts = val.split('/');
                 const numPart = parts[0].trim();
                 const yearPart = parts[1].trim();
-                if (!numPart) return pad15 + '/' + (yearPart || '2026');
+                if (!numPart) return padSpace + '/' + (yearPart || '2026');
                 return numPart + '/' + (yearPart || '2026');
             }
             return val;
