@@ -1247,6 +1247,30 @@
             font-size: inherit;
         }
 
+        /* Estilos adicionais para os novos modelos de carimbo (Compacto e Mini) */
+        table.stamp-table {
+            border-collapse: collapse !important;
+            width: 100% !important;
+            height: 100% !important;
+            border: 1.5px solid #000 !important;
+            font-family: 'Century Gothic', 'Questrial', 'CenturyGothic', sans-serif !important;
+            font-weight: bold !important;
+        }
+        table.stamp-table td {
+            border: 1.5px solid #000 !important;
+            padding: 0 4% !important;
+            vertical-align: middle !important;
+            color: #000 !important;
+            box-sizing: border-box !important;
+        }
+        table.stamp-table .rotulo {
+            font-weight: bold !important;
+        }
+        table.stamp-table .valor {
+            font-weight: normal !important;
+            text-align: center !important;
+        }
+
         /* Carregando */
         .loader-spinner {
             border: 4px solid rgba(28, 25, 23, 0.1);
@@ -1544,10 +1568,18 @@
                     <div class="section-title">Carimbo</div>
                     <div class="stamp-data-group">
                         <div class="stamp-data-row">
+                            <span class="stamp-data-label">Modelo</span>
+                            <select class="stamp-data-input" id="stamp-model" style="text-align: right; direction: rtl; cursor: pointer; padding-right: 8px;">
+                                <option value="padrao">Padrão</option>
+                                <option value="compacto">Compacto</option>
+                                <option value="mini">Mini</option>
+                            </select>
+                        </div>
+                        <div class="stamp-data-row">
                             <span class="stamp-data-label">Processo n.º</span>
                             <input class="stamp-data-input" type="text" id="process-number" value="/2026">
                         </div>
-                        <div class="stamp-data-row">
+                        <div class="stamp-data-row" id="start-date-row">
                             <span class="stamp-data-label">Data de início</span>
                             <input class="stamp-data-input" type="text" id="start-date" value="//2026">
                         </div>
@@ -1849,6 +1881,7 @@
             reserveTerms: true,
             bgZoom: 1.0,
             bgAlign: 'center',
+            stampModel: 'padrao',
             
             // Geometria
             scale: 1.0,
@@ -1874,6 +1907,7 @@
         const startLeafInput = document.getElementById('start-leaf');
         const volumeLimitInput = document.getElementById('volume-limit');
         const reserveTermsCheckbox = document.getElementById('reserve-terms');
+        const stampModelSelect = document.getElementById('stamp-model');
         const activePdfIntervalInput = document.getElementById('active-pdf-interval');
         const activePdfIntervalGroup = document.getElementById('active-pdf-interval-group');
         // active-pdf-interval-label removed: filename now shown in active-file-name pill
@@ -1945,6 +1979,12 @@
                     updateAllStampText();
                 });
             });
+        });
+
+        stampModelSelect.addEventListener('change', () => {
+            readFormInputs();
+            recalculateSequences();
+            renderGrid();
         });
 
         // Entrada de intervalo do PDF selecionado
@@ -2403,6 +2443,12 @@
             
             appState.volumeLimit = parseInt(volumeLimitInput.value) || 200;
             appState.reserveTerms = reserveTermsCheckbox.checked;
+            appState.stampModel = stampModelSelect.value;
+
+            const dateRow = document.getElementById('start-date-row');
+            if (dateRow) {
+                dateRow.style.display = (appState.stampModel === 'padrao') ? 'flex' : 'none';
+            }
         }
 
         // Parser JS de intervalo de páginas
@@ -2655,6 +2701,74 @@
             });
         }
 
+        function getStampHTML(file, page, info) {
+            const formattedProc = formatProcessNumberJS(appState.processNumber);
+            const formattedDate = formatStartDateJS(appState.startDate);
+            const leafText = (info && info.leaf_number !== null) ? info.leaf_number : '';
+            const fileId = file.fileId;
+            const pageIdx = page.page_idx;
+
+            if (appState.stampModel === 'compacto') {
+                return `
+                    <div class="stamp-text-container">
+                        <table class="stamp-table">
+                            <tr style="height: 25%">
+                                <td colspan="2" class="rotulo" style="text-align: center; white-space: nowrap; font-size: 7.5px; padding: 0 2% !important;">Prefeitura Municipal de Maricá</td>
+                            </tr>
+                            <tr style="height: 25%">
+                                <td class="rotulo" style="width: 45%;">Processo</td>
+                                <td class="valor" id="stamp-proc-val-p${fileId}-${pageIdx}" style="width: 55%;">${formattedProc}</td>
+                            </tr>
+                            <tr style="height: 25%">
+                                <td class="rotulo" style="width: 45%;">Folha</td>
+                                <td class="valor" id="stamp-leaf-val-p${fileId}-${pageIdx}">${leafText}</td>
+                            </tr>
+                            <tr style="height: 25%">
+                                <td class="rotulo" style="width: 45%;">Rubrica</td>
+                                <td class="valor"></td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="resize-handle" id="resize-handle-${fileId}-${pageIdx}"></div>
+                `;
+            } else if (appState.stampModel === 'mini') {
+                return `
+                    <div class="stamp-text-container">
+                        <table class="stamp-table">
+                            <tr style="height: 33.33%">
+                                <td class="rotulo" style="width: 45%;">Processo</td>
+                                <td class="valor" id="stamp-proc-val-p${fileId}-${pageIdx}" style="width: 55%;">${formattedProc}</td>
+                            </tr>
+                            <tr style="height: 33.33%">
+                                <td class="rotulo" style="width: 45%;">Folha</td>
+                                <td class="valor" id="stamp-leaf-val-p${fileId}-${pageIdx}">${leafText}</td>
+                            </tr>
+                            <tr style="height: 33.33%">
+                                <td class="rotulo" style="width: 45%;">Rubrica</td>
+                                <td class="valor"></td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="resize-handle" id="resize-handle-${fileId}-${pageIdx}"></div>
+                `;
+            } else {
+                return `
+                    <div class="stamp-text-container">
+                        <div class="stamp-row-1" id="stamp-row1-p${fileId}-${pageIdx}">Processo n.º ${formattedProc}</div>
+                        <div class="stamp-row-2">
+                            <div class="stamp-col-left">
+                                <div>Data do início:</div>
+                                <div id="stamp-date-p${fileId}-${pageIdx}">${formattedDate}</div>
+                            </div>
+                            <div class="stamp-col-right" id="stamp-leaf-p${fileId}-${pageIdx}">Fl.${leafText}</div>
+                        </div>
+                        <div class="stamp-row-3">Rubrica</div>
+                    </div>
+                    <div class="resize-handle" id="resize-handle-${fileId}-${pageIdx}"></div>
+                `;
+            }
+        }
+
         // Cria o Grid de visualização de páginas
         function renderGrid() {
             if (appState.activeFileIdx === -1) return;
@@ -2830,20 +2944,7 @@
                             const stamp = document.createElement('div');
                             stamp.className = 'stamp-overlay';
                             stamp.id = `stamp-page-${file.fileId}-${page.page_idx}`;
-                            stamp.innerHTML = `
-                                <div class="stamp-text-container">
-                                    <div class="stamp-row-1" id="stamp-row1-p${file.fileId}-${page.page_idx}">Processo n.º ${formatProcessNumberJS(appState.processNumber)}</div>
-                                    <div class="stamp-row-2">
-                                        <div class="stamp-col-left">
-                                            <div>Data do início:</div>
-                                            <div id="stamp-date-p${file.fileId}-${page.page_idx}">${formatStartDateJS(appState.startDate)}</div>
-                                        </div>
-                                        <div class="stamp-col-right" id="stamp-leaf-p${file.fileId}-${page.page_idx}">Fl.${(info && info.leaf_number !== null) ? info.leaf_number : ''}</div>
-                                    </div>
-                                    <div class="stamp-row-3">Rubrica</div>
-                                </div>
-                                <div class="resize-handle" id="resize-handle-${file.fileId}-${page.page_idx}"></div>
-                            `;
+                            stamp.innerHTML = getStampHTML(file, page, info);
                             initDragAndDrop(stamp, fileIdx, page.page_idx, page.width, page.height);
 
                             wrapper.appendChild(img);
@@ -3022,20 +3123,7 @@
                         const stamp = document.createElement('div');
                         stamp.className = 'stamp-overlay';
                         stamp.id = `stamp-page-${file.fileId}-${page.page_idx}`;
-                        stamp.innerHTML = `
-                            <div class="stamp-text-container">
-                                <div class="stamp-row-1" id="stamp-row1-p${file.fileId}-${page.page_idx}">Processo n.º ${formatProcessNumberJS(appState.processNumber)}</div>
-                                <div class="stamp-row-2">
-                                    <div class="stamp-col-left">
-                                        <div>Data do início:</div>
-                                        <div id="stamp-date-p${file.fileId}-${page.page_idx}">${formatStartDateJS(appState.startDate)}</div>
-                                    </div>
-                                    <div class="stamp-col-right" id="stamp-leaf-p${file.fileId}-${page.page_idx}">Fl.${(info && info.leaf_number !== null) ? info.leaf_number : ''}</div>
-                                </div>
-                                <div class="stamp-row-3">Rubrica</div>
-                            </div>
-                            <div class="resize-handle" id="resize-handle-${file.fileId}-${page.page_idx}"></div>
-                        `;
+                        stamp.innerHTML = getStampHTML(file, page, info);
                         initDragAndDrop(stamp, appState.activeFileIdx, page.page_idx, page.width, page.height);
 
                         wrapper.appendChild(img);
@@ -3243,6 +3331,14 @@
 
                     let x0, y0, s;
 
+                    let currentBaseWidth = STAMP_BASE_WIDTH;
+                    let currentBaseHeight = STAMP_BASE_HEIGHT;
+                    if (appState.stampModel === 'compacto') {
+                        currentBaseHeight = 44.0;
+                    } else if (appState.stampModel === 'mini') {
+                        currentBaseHeight = 33.0;
+                    }
+
                     if (appState.positionMode && appState.customCoords[file.fileId]?.[page.page_idx]) {
                         const coords = appState.customCoords[file.fileId][page.page_idx];
                         x0 = coords.x0;
@@ -3260,13 +3356,13 @@
                         s = appState.scale;
                     } else {
                         s = appState.scale;
-                        const w_stamp = STAMP_BASE_WIDTH * s;
+                        const w_stamp = currentBaseWidth * s;
                         x0 = page.width - MARGIN_RIGHT - w_stamp;
                         y0 = MARGIN_TOP;
                     }
 
-                    const screenWidth = (STAMP_BASE_WIDTH * s) * ratio;
-                    const screenHeight = (STAMP_BASE_HEIGHT * s) * ratio;
+                    const screenWidth = (currentBaseWidth * s) * ratio;
+                    const screenHeight = (currentBaseHeight * s) * ratio;
                     const screenLeft = x0 * ratio;
                     const screenTop = y0 * ratio;
 
@@ -3328,6 +3424,11 @@
                     if (r1) r1.textContent = `Processo n.º ${formatProcessNumberJS(appState.processNumber)}`;
                     if (dateEl) dateEl.textContent = formatStartDateJS(appState.startDate);
                     if (leafEl) leafEl.textContent = info.leaf_number !== null ? `Fl.${info.leaf_number}` : 'Fl.';
+
+                    const procVal = document.getElementById(`stamp-proc-val-p${file.fileId}-${info.page_idx}`);
+                    const leafVal = document.getElementById(`stamp-leaf-val-p${file.fileId}-${info.page_idx}`);
+                    if (procVal) procVal.textContent = formatProcessNumberJS(appState.processNumber);
+                    if (leafVal) leafVal.textContent = info.leaf_number !== null ? info.leaf_number : '';
                 });
             });
         }
@@ -3475,7 +3576,8 @@
                         custom_coords: custom_coords,
                         active_pages: file.activePages,
                         bg_zoom: appState.bgZoom,
-                        bg_align: appState.bgAlign
+                        bg_align: appState.bgAlign,
+                        stamp_model: appState.stampModel
                     };
 
                     const response = await fetch('/api/stamp', {

@@ -159,6 +159,8 @@ def format_start_date(val: str) -> str:
             return f"{d_str}/{m_str}/{y_str}"
     return val
 
+
+
 def draw_vector_stamp(
     page: fitz.Page,
     x0: float,
@@ -166,25 +168,28 @@ def draw_vector_stamp(
     scale: float,
     process_number: str,
     start_date: str,
-    leaf_number: int | None
+    leaf_number: int | None,
+    stamp_model: str = "padrao"
 ):
     """
     Desenha o carimbo vetorial nas coordenadas especificadas utilizando PyMuPDF.
     Garante resolução infinita na impressão.
     """
     import os
-    # Proporções base (120.4 x 60 pt / 42.47 x 21.17 mm)
+    # Proporções base
     W = 120.4 * scale
-    H = 60.0 * scale
+    
+    if stamp_model == "compacto":
+        H = 44.0 * scale
+    elif stamp_model == "mini":
+        H = 33.0 * scale
+    else:
+        H = 60.0 * scale
+        
     x1 = x0 + W
     y1 = y0 + H
     
-    # Coordenadas internas
-    y_line1 = y0 + 16.0 * scale
-    y_line2 = y0 + 38.0 * scale
-    x_split = x0 + 83.9 * scale
-    
-    # Matriz de derotação para converter coordenadas visuais para o espaço físico da página
+    # Matriz de derotação
     derot = page.derotation_matrix
     
     shape = page.new_shape()
@@ -192,18 +197,32 @@ def draw_vector_stamp(
     # Retângulo externo
     shape.draw_rect(fitz.Rect(x0, y0, x1, y1) * derot)
     
-    # Divisórias horizontais
-    shape.draw_line(fitz.Point(x0, y_line1) * derot, fitz.Point(x1, y_line1) * derot)
-    shape.draw_line(fitz.Point(x0, y_line2) * derot, fitz.Point(x1, y_line2) * derot)
+    if stamp_model in ["compacto", "mini"]:
+        num_rows = 4 if stamp_model == "compacto" else 3
+        row_height = H / num_rows
+        
+        # Divisórias horizontais
+        for i in range(1, num_rows):
+            yh = y0 + i * row_height
+            shape.draw_line(fitz.Point(x0, yh) * derot, fitz.Point(x1, yh) * derot)
+            
+        # Divisória vertical
+        x_split = x0 + W * 0.45
+        y_start_vert = y0 + row_height if stamp_model == "compacto" else y0
+        shape.draw_line(fitz.Point(x_split, y_start_vert) * derot, fitz.Point(x_split, y1) * derot)
+    else:
+        y_line1 = y0 + 16.0 * scale
+        y_line2 = y0 + 38.0 * scale
+        x_split = x0 + 83.9 * scale
+        shape.draw_line(fitz.Point(x0, y_line1) * derot, fitz.Point(x1, y_line1) * derot)
+        shape.draw_line(fitz.Point(x0, y_line2) * derot, fitz.Point(x1, y_line2) * derot)
+        shape.draw_line(fitz.Point(x_split, y_line1) * derot, fitz.Point(x_split, y_line2) * derot)
     
-    # Divisória vertical do meio (split 68/32)
-    shape.draw_line(fitz.Point(x_split, y_line1) * derot, fitz.Point(x_split, y_line2) * derot)
-    
-    # Contorno preto com espessura uniforme 1.2 pt escalada
+    # Contorno
     stroke_width = 1.2 * scale
     shape.finish(color=(0, 0, 0), width=stroke_width)
     
-    # Obter caminhos das fontes no projeto
+    # Fontes
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     font_bold_path = os.path.join(base_dir, "fonts", "GOTHICB.TTF")
     
@@ -211,61 +230,62 @@ def draw_vector_stamp(
         font_name = "CenturyGothic-Bold"
         font_file = font_bold_path
     else:
-        font_name = "hebo" # fallback para Helvetica Bold
+        font_name = "hebo"
         font_file = None
         
-    # Todos os textos usam o mesmo tamanho de fonte: Century Gothic 8
     font_size = 8.0 * scale
     
     formatted_proc = format_process_number(process_number)
     formatted_date = format_start_date(start_date)
-
-    # Linha 1: Processo n.º
-    process_text = f"Processo n.º {formatted_proc}"
-    left_padding = 6.0 * scale
-    px = x0 + left_padding
-    py = y0 + 11.5 * scale
-    shape.insert_text(fitz.Point(px, py) * derot, process_text, fontname=font_name, fontfile=font_file, fontsize=font_size, color=(0, 0, 0), rotate=page.rotation)
     
-    # Linha 2 (Esquerda): Data do início
-    left_padding = 6.0 * scale
-    shape.insert_text(
-        (fitz.Point(x0 + left_padding, y0 + 24.5 * scale)) * derot,
-        "Data do início:",
-        fontname=font_name,
-        fontfile=font_file,
-        fontsize=font_size,
-        color=(0, 0, 0),
-        rotate=page.rotation
-    )
-    shape.insert_text(
-        (fitz.Point(x0 + left_padding, y0 + 34.5 * scale)) * derot,
-        formatted_date,
-        fontname=font_name,
-        fontfile=font_file,
-        fontsize=font_size,
-        color=(0, 0, 0),
-        rotate=page.rotation
-    )
-    
-    # Linha 2 (Direita): Fl. (Alinhado à esquerda com o mesmo recuo)
-    fl_text = f"Fl.{leaf_number}" if leaf_number is not None else "Fl."
-    fl_x = x_split + left_padding
-    fl_y = y0 + 29.5 * scale
-    shape.insert_text(fitz.Point(fl_x, fl_y) * derot, fl_text, fontname=font_name, fontfile=font_file, fontsize=font_size, color=(0, 0, 0), rotate=page.rotation)
-    
-    # Linha 3: Rubrica
-    shape.insert_text(
-        (fitz.Point(x0 + left_padding, y0 + 47.0 * scale)) * derot,
-        "Rubrica",
-        fontname=font_name,
-        fontfile=font_file,
-        fontsize=font_size,
-        color=(0, 0, 0),
-        rotate=page.rotation
-    )
-    
+    if stamp_model in ["compacto", "mini"]:
+        left_padding = 4.0 * scale
+        row_idx = 0
+        num_rows = 4 if stamp_model == "compacto" else 3
+        row_height = H / num_rows
+        
+        if stamp_model == "compacto":
+            title = "Prefeitura Municipal de Maricá"
+            try:
+                title_width = fitz.getTextlength(title, fontname=font_name, fontsize=7.5 * scale)
+            except:
+                title_width = fitz.get_text_length(title, fontname=font_name, fontfile=font_file, fontsize=7.5 * scale)
+            title_x = x0 + (W - title_width) / 2.0
+            shape.insert_text(fitz.Point(title_x, y0 + 7.5 * scale) * derot, title, fontname=font_name, fontfile=font_file, fontsize=7.5 * scale, color=(0, 0, 0), rotate=page.rotation)
+            row_idx = 1
+            
+        leaf_text = f"{leaf_number}" if leaf_number is not None else ""
+        if formatted_proc.strip() == "/2026":
+            formatted_proc = " /2026"  # just a single space for visual clearance
+            
+        rows_data = [
+            ("Processo", formatted_proc),
+            ("Folha", leaf_text),
+            ("Rubrica", "")
+        ]
+        
+        for i, (label, val) in enumerate(rows_data):
+            y_base = y0 + (row_idx + i) * row_height + 8.0 * scale
+            shape.insert_text(fitz.Point(x0 + left_padding, y_base) * derot, label, fontname=font_name, fontfile=font_file, fontsize=font_size, color=(0, 0, 0), rotate=page.rotation)
+            if val:
+                shape.insert_text(fitz.Point(x_split + left_padding, y_base) * derot, val, fontname=font_name, fontfile=font_file, fontsize=font_size, color=(0, 0, 0), rotate=page.rotation)
+    else:
+        # Padrao
+        process_text = f"Processo n.º {formatted_proc}"
+        left_padding = 6.0 * scale
+        shape.insert_text(fitz.Point(x0 + left_padding, y0 + 11.5 * scale) * derot, process_text, fontname=font_name, fontfile=font_file, fontsize=font_size, color=(0, 0, 0), rotate=page.rotation)
+        
+        shape.insert_text((fitz.Point(x0 + left_padding, y0 + 24.5 * scale)) * derot, "Data do início:", fontname=font_name, fontfile=font_file, fontsize=font_size, color=(0, 0, 0), rotate=page.rotation)
+        shape.insert_text((fitz.Point(x0 + left_padding, y0 + 34.5 * scale)) * derot, formatted_date, fontname=font_name, fontfile=font_file, fontsize=font_size, color=(0, 0, 0), rotate=page.rotation)
+        
+        fl_text = f"Fl.{leaf_number}" if leaf_number is not None else "Fl."
+        x_split = x0 + 83.9 * scale
+        shape.insert_text(fitz.Point(x_split + left_padding, y0 + 29.5 * scale) * derot, fl_text, fontname=font_name, fontfile=font_file, fontsize=font_size, color=(0, 0, 0), rotate=page.rotation)
+        
+        shape.insert_text((fitz.Point(x0 + left_padding, y0 + 47.0 * scale)) * derot, "Rubrica", fontname=font_name, fontfile=font_file, fontsize=font_size, color=(0, 0, 0), rotate=page.rotation)
+        
     shape.commit()
+
 
 def process_pdf_stamping(
     input_pdf_path: str,
@@ -279,7 +299,8 @@ def process_pdf_stamping(
     custom_coords: Dict[str, Dict[str, Any]] = None,
     active_pages: List[int] = None,
     bg_zoom: float = 1.0,
-    bg_align: str = "center"
+    bg_align: str = "center",
+    stamp_model: str = "padrao"
 ) -> Tuple[List[Dict[str, Any]], bool, str]:
     """
     Abre o PDF, calcula a sequência e estampa cada página de acordo com os parâmetros e coordenadas.
@@ -368,7 +389,8 @@ def process_pdf_stamping(
                 scale=scale,
                 process_number=process_number,
                 start_date=start_date,
-                leaf_number=info["leaf_number"]
+                leaf_number=info["leaf_number"],
+                stamp_model=stamp_model
             )
             
         doc.save(output_pdf_path)
