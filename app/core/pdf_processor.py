@@ -403,7 +403,8 @@ def process_pdf_stamping(
                     
             if x0 is None or y0 is None:
                 # Posicionamento padrão: Canto superior direito usando a escala
-                stamp_width = 120.4 * scale
+                base_w = 102.34 if stamp_model in ["compacto", "mini"] else 120.4
+                stamp_width = base_w * scale
                 x0 = page_width - 20.0 - stamp_width
                 y0 = 20.0
                 

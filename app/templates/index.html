@@ -3264,7 +3264,8 @@
                 } else if (isResizing) {
                     const dx = e.clientX - startX;
                     const newWidth = Math.max(70, Math.min(210, startWidth + dx));
-                    const newScale = (newWidth / ratio) / STAMP_BASE_WIDTH;
+                    const currentBaseWidth = (appState.stampModel === 'compacto' || appState.stampModel === 'mini') ? 102.34 : STAMP_BASE_WIDTH;
+                    const newScale = (newWidth / ratio) / currentBaseWidth;
                     const clampedScale = Math.max(0.5, Math.min(1.5, newScale));
 
                     if (appState.positionMode) {
