@@ -1822,8 +1822,11 @@
         });
 
         // Configurações padrão do sistema
-        const STAMP_BASE_WIDTH = 120.4;
-        const STAMP_BASE_HEIGHT = 60.0;
+        const STAMP_MODELS = {
+            padrao: { width: 120.4, height: 60.0 },
+            compacto: { width: 102.34, height: 44.0 },
+            mini: { width: 102.34, height: 33.0 }
+        };
         const MARGIN_RIGHT = 20.0;
         const MARGIN_TOP = 20.0;
 
@@ -2708,42 +2711,25 @@
             const fileId = file.fileId;
             const pageIdx = page.page_idx;
 
-            if (appState.stampModel === 'compacto') {
+            if (appState.stampModel === 'compacto' || appState.stampModel === 'mini') {
+                const showTitle = appState.stampModel === 'compacto';
+                const rowHeight = showTitle ? '25%' : '33.33%';
                 return `
                     <div class="stamp-text-container">
                         <table class="stamp-table">
+                            ${showTitle ? `
                             <tr style="height: 25%">
                                 <td colspan="2" class="rotulo" style="text-align: center; white-space: nowrap; font-size: 6.0px; padding: 0 2% !important;">Prefeitura Municipal de Maricá</td>
-                            </tr>
-                            <tr style="height: 25%">
+                            </tr>` : ''}
+                            <tr style="height: ${rowHeight}">
                                 <td class="rotulo" style="width: 42%;">Processo</td>
                                 <td class="valor" id="stamp-proc-val-p${fileId}-${pageIdx}" style="width: 58%; text-align: right;">${formattedProc}</td>
                             </tr>
-                            <tr style="height: 25%">
+                            <tr style="height: ${rowHeight}">
                                 <td class="rotulo" style="width: 42%;">Folha</td>
                                 <td class="valor" id="stamp-leaf-val-p${fileId}-${pageIdx}" style="text-align: center;">${leafText}</td>
                             </tr>
-                            <tr style="height: 25%">
-                                <td class="rotulo" style="width: 42%;">Rubrica</td>
-                                <td class="valor" style="text-align: right;"></td>
-                            </tr>
-                        </table>
-                    </div>
-                    <div class="resize-handle" id="resize-handle-${fileId}-${pageIdx}"></div>
-                `;
-            } else if (appState.stampModel === 'mini') {
-                return `
-                    <div class="stamp-text-container">
-                        <table class="stamp-table">
-                            <tr style="height: 33.33%">
-                                <td class="rotulo" style="width: 42%;">Processo</td>
-                                <td class="valor" id="stamp-proc-val-p${fileId}-${pageIdx}" style="width: 58%; text-align: right;">${formattedProc}</td>
-                            </tr>
-                            <tr style="height: 33.33%">
-                                <td class="rotulo" style="width: 42%;">Folha</td>
-                                <td class="valor" id="stamp-leaf-val-p${fileId}-${pageIdx}" style="text-align: center;">${leafText}</td>
-                            </tr>
-                            <tr style="height: 33.33%">
+                            <tr style="height: ${rowHeight}">
                                 <td class="rotulo" style="width: 42%;">Rubrica</td>
                                 <td class="valor" style="text-align: right;"></td>
                             </tr>
@@ -3264,8 +3250,8 @@
                 } else if (isResizing) {
                     const dx = e.clientX - startX;
                     const newWidth = Math.max(70, Math.min(210, startWidth + dx));
-                    const currentBaseWidth = (appState.stampModel === 'compacto' || appState.stampModel === 'mini') ? 102.34 : STAMP_BASE_WIDTH;
-                    const newScale = (newWidth / ratio) / currentBaseWidth;
+                    const modelInfo = STAMP_MODELS[appState.stampModel] || STAMP_MODELS.padrao;
+                    const newScale = (newWidth / ratio) / modelInfo.width;
                     const clampedScale = Math.max(0.5, Math.min(1.5, newScale));
 
                     if (appState.positionMode) {
@@ -3332,15 +3318,9 @@
 
                     let x0, y0, s;
 
-                    let currentBaseWidth = STAMP_BASE_WIDTH;
-                    let currentBaseHeight = STAMP_BASE_HEIGHT;
-                    if (appState.stampModel === 'compacto') {
-                        currentBaseWidth = 102.34;
-                        currentBaseHeight = 44.0;
-                    } else if (appState.stampModel === 'mini') {
-                        currentBaseWidth = 102.34;
-                        currentBaseHeight = 33.0;
-                    }
+                    const modelInfo = STAMP_MODELS[appState.stampModel] || STAMP_MODELS.padrao;
+                    const currentBaseWidth = modelInfo.width;
+                    const currentBaseHeight = modelInfo.height;
 
                     if (appState.positionMode && appState.customCoords[file.fileId]?.[page.page_idx]) {
                         const coords = appState.customCoords[file.fileId][page.page_idx];
