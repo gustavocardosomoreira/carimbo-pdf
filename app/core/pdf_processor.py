@@ -181,10 +181,10 @@ def draw_vector_stamp(
     
     if stamp_model == "compacto":
         H = 44.0 * scale
-        W = 105.0 * scale
+        W = 120.4 * scale
     elif stamp_model == "mini":
         H = 33.0 * scale
-        W = 105.0 * scale
+        W = 120.4 * scale
     else:
         H = 60.0 * scale
         
@@ -253,7 +253,8 @@ def draw_vector_stamp(
             except:
                 title_width = fitz.get_text_length(title, fontname=font_name, fontfile=font_file, fontsize=7.5 * scale)
             title_x = x0 + (W - title_width) / 2.0
-            shape.insert_text(fitz.Point(title_x, y0 + 7.5 * scale) * derot, title, fontname=font_name, fontfile=font_file, fontsize=7.5 * scale, color=(0, 0, 0), rotate=page.rotation)
+            title_y_base = y0 + (row_height * 0.5) + (7.5 * scale * 0.35)
+            shape.insert_text(fitz.Point(title_x, title_y_base) * derot, title, fontname=font_name, fontfile=font_file, fontsize=7.5 * scale, color=(0, 0, 0), rotate=page.rotation)
             row_idx = 1
             
         leaf_text = f"{leaf_number}" if leaf_number is not None else ""
@@ -267,10 +268,24 @@ def draw_vector_stamp(
         ]
         
         for i, (label, val) in enumerate(rows_data):
-            y_base = y0 + (row_idx + i) * row_height + 8.0 * scale
+            # Centering vertically in the row:
+            # Row middle is row_height / 2.
+            # Baseline offset for font_size is approx font_size * 0.75
+            # So y_base = y0 + row_y + row_height/2 + font_size*0.35
+            y_base = y0 + (row_idx + i) * row_height + (row_height * 0.5) + (font_size * 0.35)
+            
             shape.insert_text(fitz.Point(x0 + left_padding, y_base) * derot, label, fontname=font_name, fontfile=font_file, fontsize=font_size, color=(0, 0, 0), rotate=page.rotation)
+            
             if val:
-                shape.insert_text(fitz.Point(x_split + left_padding, y_base) * derot, val, fontname=font_name, fontfile=font_file, fontsize=font_size, color=(0, 0, 0), rotate=page.rotation)
+                try:
+                    val_width = fitz.getTextlength(val.strip(), fontname=font_name, fontsize=font_size)
+                except:
+                    val_width = fitz.get_text_length(val.strip(), fontname=font_name, fontfile=font_file, fontsize=font_size)
+                
+                # Right align text: x1 - padding - val_width
+                right_padding = 4.0 * scale
+                val_x = x1 - right_padding - val_width
+                shape.insert_text(fitz.Point(val_x, y_base) * derot, val.strip(), fontname=font_name, fontfile=font_file, fontsize=font_size, color=(0, 0, 0), rotate=page.rotation)
     else:
         # Padrao
         process_text = f"Processo n.º {formatted_proc}"
