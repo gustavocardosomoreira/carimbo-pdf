@@ -13,6 +13,8 @@ from fastapi.templating import Jinja2Templates
 from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel, Field
 
+from app.version import APP_VERSION, APP_COMMIT
+
 from app.core.config import (
     DEFAULT_VOLUME_LIMIT,
     DEFAULT_PROCESS_NUMBER,
@@ -96,6 +98,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Carimbo.pdf - Carimbador Dinâmico de PDF",
+    version=APP_VERSION,
     lifespan=lifespan
 )
 
@@ -135,12 +138,20 @@ async def health_check():
     """
     return {"status": "ok"}
 
+@app.get("/api/version")
+async def get_app_version(response: Response):
+    """Retorna a versão da aplicação e o commit do código em execução."""
+    response.headers["Cache-Control"] = "no-store"
+    return {"version": APP_VERSION, "commit": APP_COMMIT}
+
 @app.get("/", response_class=HTMLResponse)
 async def serve_frontend(request: Request):
     """
     Serve a interface do usuário (SPA).
     """
-    response = templates.TemplateResponse(request, "index.html")
+    response = templates.TemplateResponse(
+        request, "index.html", {"app_version": APP_VERSION}
+    )
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     response.headers["Pragma"] = "no-cache"
     response.headers["Expires"] = "0"

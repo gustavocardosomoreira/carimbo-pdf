@@ -84,6 +84,35 @@ carimbo-pdf/
 
 ---
 
+## 🔖 Versão da Aplicação
+
+A versão oficial fica em `APP_VERSION`, no arquivo `app/version.py`. A interface web,
+a API e o aplicativo desktop usam esse mesmo valor. A versão inicial é `1.0.0`.
+
+* **Usuários:** ao passar o mouse sobre o logo **Carimbo.pdf**, aparece a dica
+  `Versão 1.0.0`, sem acrescentar texto fixo à interface.
+* **Manutenção:** `GET /api/version` retorna a versão e o commit em execução:
+  `{"version": "1.0.0", "commit": "<SHA completo do commit>"}`. A versão também
+  aparece nos metadados da API em `/docs`.
+
+O commit é obtido de `APP_COMMIT_SHA`, de `RAILWAY_GIT_COMMIT_SHA` ou do Git local,
+nessa ordem. Se nenhuma dessas fontes estiver disponível, `commit` será `null`;
+a versão continuará disponível, inclusive no executável desktop. Para outros
+ambientes Docker, informe `APP_COMMIT_SHA` com o SHA do código empacotado.
+
+Antes de publicar uma atualização, altere `APP_VERSION`:
+
+* Correções: `1.0.0` → `1.0.1`.
+* Novas funcionalidades: `1.0.1` → `1.1.0`.
+* Mudanças incompatíveis: `1.1.0` → `2.0.0`.
+
+Inclua a alteração no commit da atualização e crie uma tag Git correspondente
+(por exemplo, `v1.0.1`) para registrar a versão no GitHub. A numeração é alterada
+explicitamente por lançamento; abrir ou reiniciar o aplicativo não a incrementa.
+Reinicie o servidor ou gere um novo executável após alterar a versão.
+
+---
+
 ## 🧪 Executando a Suíte de Testes
 Para garantir a integridade dos cálculos matemáticos de escala, pulos de termos e rotas de API, execute o comando:
 ```bash
