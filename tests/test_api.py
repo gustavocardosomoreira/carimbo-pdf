@@ -7,6 +7,38 @@ from app.main import app, UPLOAD_DIR
 
 client = TestClient(app)
 
+
+@pytest.mark.parametrize("rotate_landscape", [False, True])
+def test_api_stamp_landscape_rotation(tmp_path, monkeypatch, rotate_landscape):
+    monkeypatch.setattr("app.main.UPLOAD_DIR", str(tmp_path))
+    with fitz.open() as doc:
+        doc.new_page(width=595, height=842)
+        doc.new_page(width=842, height=595)
+        doc.new_page(width=595, height=842).set_rotation(90)
+        pdf_bytes = doc.tobytes()
+
+    uploaded = client.post(
+        "/api/upload", files={"file": ("misto.pdf", pdf_bytes, "application/pdf")}
+    )
+    assert uploaded.status_code == 200
+    response = client.post("/api/stamp", json={
+        "file_id": uploaded.json()["file_id"],
+        "process_number": "4321/2026", "start_date": "16/07/2026",
+        "start_leaf": 10, "volume_limit": 200, "reserve_terms": False,
+        "rotate_landscape": rotate_landscape,
+    })
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "application/pdf"
+    with fitz.open(stream=response.content, filetype="pdf") as doc:
+        for idx, page in enumerate(doc):
+            bounds = page.get_drawings()[0]["rect"] * page.rotation_matrix
+            rotated = rotate_landscape and idx > 0
+            assert bounds.width == pytest.approx(60 if rotated else 120.4, abs=0.01)
+            assert bounds.height == pytest.approx(120.4 if rotated else 60, abs=0.01)
+            assert page.rect.width - bounds.x1 == pytest.approx(20, abs=0.01)
+            gap = page.rect.height - bounds.y1 if rotated else bounds.y0
+            assert gap == pytest.approx(20, abs=0.01)
+
 @pytest.fixture
 def dummy_pdf():
     # Cria um PDF em branco temporário com 2 páginas

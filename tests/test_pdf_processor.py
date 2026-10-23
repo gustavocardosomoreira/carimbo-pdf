@@ -3,11 +3,124 @@ import tempfile
 import fitz
 import pytest
 from app.core.pdf_processor import (
+    STAMP_MODELS,
     calculate_leaf_sequence,
     check_volume_break,
     process_pdf_stamping,
     render_page_to_png
 )
+
+
+@pytest.mark.parametrize("stamp_model", ["padrao", "compacto", "mini"])
+@pytest.mark.parametrize("rotate_landscape", [False, True])
+@pytest.mark.parametrize("width,height,page_rotation", [
+    (595, 842, 0), (842, 595, 0),
+    (595, 842, 90), (842, 595, 90),
+    (595, 842, 180), (842, 595, 180),
+    (595, 842, 270), (842, 595, 270),
+    (500, 500, 0),
+])
+def test_landscape_stamp_rotation_and_position(
+    tmp_path, stamp_model, rotate_landscape, width, height, page_rotation
+):
+    source = tmp_path / "source.pdf"
+    output = tmp_path / "stamped.pdf"
+    with fitz.open() as doc:
+        page = doc.new_page(width=width, height=height)
+        page.insert_text((50, 80), "ORIGINAL")
+        original_words = page.get_text("words")
+        page.set_rotation(page_rotation)
+        doc.save(source)
+
+    scale = 1.25
+    process_pdf_stamping(
+        str(source), str(output), "9557/2026", "21/05/2026", 18, 200, False,
+        global_coords={"scale": scale},
+        stamp_model=stamp_model, rotate_landscape=rotate_landscape,
+    )
+
+    with fitz.open(output) as doc:
+        page = doc[0]
+        assert page.rotation == page_rotation
+        assert page.get_images() == []  # O carimbo permanece vetorial.
+        assert [word for word in page.get_text("words") if word[4] == "ORIGINAL"] == original_words
+        rotated = rotate_landscape and page.rect.width > page.rect.height
+        model = STAMP_MODELS[stamp_model]
+        bounds = page.get_drawings()[0]["rect"] * page.rotation_matrix
+        assert bounds.width == pytest.approx(model["H" if rotated else "W"] * scale, abs=0.01)
+        assert bounds.height == pytest.approx(model["W" if rotated else "H"] * scale, abs=0.01)
+        assert page.rect.width - bounds.x1 == pytest.approx(20, abs=0.01)
+        if rotated:
+            assert page.rect.height - bounds.y1 == pytest.approx(20, abs=0.01)
+        else:
+            assert bounds.y0 == pytest.approx(20, abs=0.01)
+
+        process_lines = [
+            line
+            for block in page.get_text("dict")["blocks"]
+            for line in block.get("lines", [])
+            if any("Processo" in span["text"] for span in line["spans"])
+        ]
+        assert process_lines
+        for line in process_lines:
+            visual_direction = (
+                fitz.Point(*line["dir"]) * page.rotation_matrix
+                - fitz.Point(0, 0) * page.rotation_matrix
+            )
+            assert tuple(visual_direction) == pytest.approx((0, 1) if rotated else (1, 0))
+
+
+@pytest.mark.parametrize("reference_landscape", [False, True])
+def test_landscape_rotation_global_margins_and_custom_position(tmp_path, reference_landscape):
+    source = tmp_path / "mixed.pdf"
+    output = tmp_path / "stamped.pdf"
+    with fitz.open() as doc:
+        doc.new_page(width=595, height=842)
+        doc.new_page(width=842, height=595)
+        doc.new_page(width=595, height=842).set_rotation(90)
+        doc.save(source)
+
+    scale = 0.75
+    right_margin, vertical_margin = 35, 45
+    ref_width, ref_height = (842, 595) if reference_landscape else (595, 842)
+    ref_stamp_width = (60 if reference_landscape else 120.4) * scale
+    ref_stamp_height = (120.4 if reference_landscape else 60) * scale
+    reference = {
+        "x0": ref_width - right_margin - ref_stamp_width,
+        "y0": ref_height - vertical_margin - ref_stamp_height if reference_landscape else vertical_margin,
+        "scale": scale, "ref_width": ref_width, "ref_height": ref_height,
+    }
+    process_pdf_stamping(
+        str(source), str(output), "9557/2026", "21/05/2026", 18, 200, False,
+        global_coords=reference, rotate_landscape=True,
+        custom_coords={"2": {"x0": 100, "y0": 150, "scale": 1.2}},
+    )
+    with fitz.open(output) as doc:
+        for idx in (0, 1):
+            page = doc[idx]
+            bounds = page.get_drawings()[0]["rect"] * page.rotation_matrix
+            assert page.rect.width - bounds.x1 == pytest.approx(right_margin, abs=0.01)
+            gap = page.rect.height - bounds.y1 if idx else bounds.y0
+            assert gap == pytest.approx(vertical_margin, abs=0.01)
+        custom = doc[2].get_drawings()[0]["rect"] * doc[2].rotation_matrix
+        assert tuple(custom) == pytest.approx((100, 150, 172, 294.48), abs=0.01)
+
+
+def test_landscape_rotation_keeps_terms_and_inactive_pages_unstamped(tmp_path):
+    source = tmp_path / "landscape.pdf"
+    output = tmp_path / "stamped.pdf"
+    with fitz.open() as doc:
+        for _ in range(4):
+            doc.new_page(width=842, height=595)
+        doc.save(source)
+    pages_info, _, _ = process_pdf_stamping(
+        str(source), str(output), "9557/2026", "21/05/2026", 199, 200, True,
+        active_pages=[0, 1, 2], rotate_landscape=True,
+    )
+    assert [info["leaf_number"] for info in pages_info] == [199, 200, 201, None]
+    with fitz.open(output) as doc:
+        assert doc[0].get_drawings()
+        assert all(not doc[idx].get_drawings() for idx in (1, 2, 3))
 
 @pytest.fixture
 def sample_pdf():

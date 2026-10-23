@@ -7,6 +7,10 @@ STAMP_MODELS = {
     "mini": {"W": 102.34, "H": 33.0}
 }
 
+def get_stamp_rotation(rotate_landscape: bool, page_width: float, page_height: float) -> int:
+    """Gira no sentido horário em relação à orientação visual da página."""
+    return 90 if rotate_landscape and page_width > page_height else 0
+
 def parse_page_interval(interval_str: str, total_pages: int) -> List[int]:
     """
     Converte uma string de intervalo de páginas (ex: "Todos", "1-5", "2, 4, 6-10")
@@ -175,7 +179,8 @@ def draw_vector_stamp(
     process_number: str,
     start_date: str,
     leaf_number: int | None,
-    stamp_model: str = "padrao"
+    stamp_model: str = "padrao",
+    rotation: int = 0
 ):
     """
     Desenha o carimbo vetorial nas coordenadas especificadas utilizando PyMuPDF.
@@ -190,8 +195,14 @@ def draw_vector_stamp(
     x1 = x0 + W
     y1 = y0 + H
     
-    # Matriz de derotação
-    derot = page.derotation_matrix
+    # Girar o carimbo dentro de seu novo retângulo, sem girar a folha.
+    # As coordenadas continuam sendo o canto superior esquerdo visível.
+    stamp_matrix = fitz.Matrix(rotation)
+    rotated_rect = fitz.Rect(x0, y0, x1, y1) * stamp_matrix
+    stamp_matrix.e += x0 - rotated_rect.x0
+    stamp_matrix.f += y0 - rotated_rect.y0
+    derot = stamp_matrix * page.derotation_matrix
+    text_rotation = (page.rotation - rotation) % 360
     
     shape = page.new_shape()
     
@@ -258,7 +269,7 @@ def draw_vector_stamp(
             title_width = _get_text_width(title, 6.0 * scale)
             title_x = x0 + (W - title_width) / 2.0
             title_y_base = y0 + (row_height * 0.5) + (6.0 * scale * 0.35)
-            shape.insert_text(fitz.Point(title_x, title_y_base) * derot, title, fontname=font_name, fontfile=font_file, fontsize=6.0 * scale, color=(0, 0, 0), rotate=page.rotation)
+            shape.insert_text(fitz.Point(title_x, title_y_base) * derot, title, fontname=font_name, fontfile=font_file, fontsize=6.0 * scale, color=(0, 0, 0), rotate=text_rotation)
             row_idx = 1
             
         leaf_text = f"{leaf_number}" if leaf_number is not None else ""
@@ -278,7 +289,7 @@ def draw_vector_stamp(
             # So y_base = y0 + row_y + row_height/2 + font_size*0.35
             y_base = y0 + (row_idx + i) * row_height + (row_height * 0.5) + (font_size * 0.35)
             
-            shape.insert_text(fitz.Point(x0 + left_padding, y_base) * derot, label, fontname=font_name, fontfile=font_file, fontsize=font_size, color=(0, 0, 0), rotate=page.rotation)
+            shape.insert_text(fitz.Point(x0 + left_padding, y_base) * derot, label, fontname=font_name, fontfile=font_file, fontsize=font_size, color=(0, 0, 0), rotate=text_rotation)
             
             if val:
                 val_width = _get_text_width(val.strip(), font_size)
@@ -292,21 +303,21 @@ def draw_vector_stamp(
                     right_padding = 4.0 * scale
                     val_x = x1 - right_padding - val_width
                     
-                shape.insert_text(fitz.Point(val_x, y_base) * derot, val.strip(), fontname=font_name, fontfile=font_file, fontsize=font_size, color=(0, 0, 0), rotate=page.rotation)
+                shape.insert_text(fitz.Point(val_x, y_base) * derot, val.strip(), fontname=font_name, fontfile=font_file, fontsize=font_size, color=(0, 0, 0), rotate=text_rotation)
     else:
         # Padrao
         process_text = f"Processo n.º {formatted_proc}"
         left_padding = 6.0 * scale
-        shape.insert_text(fitz.Point(x0 + left_padding, y0 + 11.5 * scale) * derot, process_text, fontname=font_name, fontfile=font_file, fontsize=font_size, color=(0, 0, 0), rotate=page.rotation)
+        shape.insert_text(fitz.Point(x0 + left_padding, y0 + 11.5 * scale) * derot, process_text, fontname=font_name, fontfile=font_file, fontsize=font_size, color=(0, 0, 0), rotate=text_rotation)
         
-        shape.insert_text((fitz.Point(x0 + left_padding, y0 + 24.5 * scale)) * derot, "Data do início:", fontname=font_name, fontfile=font_file, fontsize=font_size, color=(0, 0, 0), rotate=page.rotation)
-        shape.insert_text((fitz.Point(x0 + left_padding, y0 + 34.5 * scale)) * derot, formatted_date, fontname=font_name, fontfile=font_file, fontsize=font_size, color=(0, 0, 0), rotate=page.rotation)
+        shape.insert_text((fitz.Point(x0 + left_padding, y0 + 24.5 * scale)) * derot, "Data do início:", fontname=font_name, fontfile=font_file, fontsize=font_size, color=(0, 0, 0), rotate=text_rotation)
+        shape.insert_text((fitz.Point(x0 + left_padding, y0 + 34.5 * scale)) * derot, formatted_date, fontname=font_name, fontfile=font_file, fontsize=font_size, color=(0, 0, 0), rotate=text_rotation)
         
         fl_text = f"Fl.{leaf_number}" if leaf_number is not None else "Fl."
         x_split = x0 + 83.9 * scale
-        shape.insert_text(fitz.Point(x_split + left_padding, y0 + 29.5 * scale) * derot, fl_text, fontname=font_name, fontfile=font_file, fontsize=font_size, color=(0, 0, 0), rotate=page.rotation)
+        shape.insert_text(fitz.Point(x_split + left_padding, y0 + 29.5 * scale) * derot, fl_text, fontname=font_name, fontfile=font_file, fontsize=font_size, color=(0, 0, 0), rotate=text_rotation)
         
-        shape.insert_text((fitz.Point(x0 + left_padding, y0 + 47.0 * scale)) * derot, "Rubrica", fontname=font_name, fontfile=font_file, fontsize=font_size, color=(0, 0, 0), rotate=page.rotation)
+        shape.insert_text((fitz.Point(x0 + left_padding, y0 + 47.0 * scale)) * derot, "Rubrica", fontname=font_name, fontfile=font_file, fontsize=font_size, color=(0, 0, 0), rotate=text_rotation)
         
     shape.commit()
 
@@ -324,7 +335,8 @@ def process_pdf_stamping(
     active_pages: List[int] = None,
     bg_zoom: float = 1.0,
     bg_align: str = "center",
-    stamp_model: str = "padrao"
+    stamp_model: str = "padrao",
+    rotate_landscape: bool = False
 ) -> Tuple[List[Dict[str, Any]], bool, str]:
     """
     Abre o PDF, calcula a sequência e estampa cada página de acordo com os parâmetros e coordenadas.
@@ -379,6 +391,8 @@ def process_pdf_stamping(
                 
             page_width = page.rect.width
             page_height = page.rect.height
+            rotation = get_stamp_rotation(rotate_landscape, page_width, page_height)
+            model_conf = STAMP_MODELS.get(stamp_model, STAMP_MODELS["padrao"])
             
             # Determinar coordenadas e escala
             scale = 1.0
@@ -398,14 +412,27 @@ def process_pdf_stamping(
                 if x0 is not None and y0 is not None:
                     if ref_width is not None and ref_width > 0:
                         right_offset = ref_width - x0
+                        ref_height = global_coords.get("ref_height")
+                        if ref_height is not None and ref_height > 0:
+                            ref_rotation = get_stamp_rotation(rotate_landscape, ref_width, ref_height)
+                            ref_stamp_width = model_conf["H" if ref_rotation else "W"] * scale
+                            stamp_width = model_conf["H" if rotation else "W"] * scale
+                            right_offset += stamp_width - ref_stamp_width
+                            ref_stamp_height = model_conf["W" if ref_rotation else "H"] * scale
+                            vertical_offset = ref_height - y0 - ref_stamp_height if ref_rotation else y0
+                            stamp_height = model_conf["W" if rotation else "H"] * scale
+                            y0 = page_height - vertical_offset - stamp_height if rotation else vertical_offset
                         x0 = page_width - right_offset
                     
+            stamp_width = model_conf["H" if rotation else "W"] * scale
+            stamp_height = model_conf["W" if rotation else "H"] * scale
             if x0 is None or y0 is None:
-                # Posicionamento padrão: Canto superior direito usando a escala
-                model_conf = STAMP_MODELS.get(stamp_model, STAMP_MODELS["padrao"])
-                stamp_width = model_conf["W"] * scale
+                # Paisagem adaptada: canto inferior direito para encadernação.
                 x0 = page_width - 20.0 - stamp_width
-                y0 = 20.0
+                y0 = page_height - 20.0 - stamp_height if rotation else 20.0
+
+            x0 = max(0, min(x0, page_width - stamp_width))
+            y0 = max(0, min(y0, page_height - stamp_height))
                 
             draw_vector_stamp(
                 page=page,
@@ -415,7 +442,8 @@ def process_pdf_stamping(
                 process_number=process_number,
                 start_date=start_date,
                 leaf_number=info["leaf_number"],
-                stamp_model=stamp_model
+                stamp_model=stamp_model,
+                rotation=rotation
             )
             
         doc.save(output_pdf_path)

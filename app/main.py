@@ -130,6 +130,7 @@ class StampRequest(BaseModel):
     bg_zoom: Optional[float] = 1.0
     bg_align: Optional[str] = "center"
     stamp_model: Optional[str] = "padrao"
+    rotate_landscape: bool = False
 
 @app.get("/health")
 async def health_check():
@@ -295,7 +296,8 @@ async def stamp_pdf_route(request: StampRequest):
             active_pages=request.active_pages,
             bg_zoom=request.bg_zoom,
             bg_align=request.bg_align,
-            stamp_model=request.stamp_model
+            stamp_model=request.stamp_model,
+            rotate_landscape=request.rotate_landscape
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro no processamento do carimbo: {str(e)}")

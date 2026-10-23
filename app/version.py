@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Optional
 
 
-APP_VERSION = "1.0.0"
+APP_VERSION = "1.1.1"
 
 
 def _get_commit() -> Optional[str]:

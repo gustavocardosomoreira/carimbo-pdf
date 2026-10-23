@@ -366,7 +366,7 @@
             border: 1px solid var(--border-color);
         }
 
-        .switch-container label {
+        .switch-container > label:not(.switch) {
             font-size: 13px;
             font-weight: 500;
             color: var(--text-secondary);
@@ -381,7 +381,7 @@
             display: inline-block;
             width: 44px;
             height: 24px;
-            flex-shrink: 0;
+            flex: 0 0 44px;
         }
 
         .switch input {
@@ -1186,6 +1186,10 @@
 
         /* Texto Simulado Interno do Carimbo */
         .stamp-text-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            transform-origin: top left;
             width: 100%;
             height: 100%;
             display: flex;
@@ -1477,6 +1481,10 @@
             color: white;
             border-color: var(--primary);
         }
+        .page-wrapper.landscape-stamp .btn-page-toggle {
+            right: auto;
+            left: 6px;
+        }
         .page-container.inactive .btn-page-toggle {
             color: var(--text-muted);
             background-color: rgba(251, 250, 249, 0.9);
@@ -1606,9 +1614,16 @@
                 <div>
                     <div class="section-title">Posicionamento</div>
                     <div class="switch-container">
-                        <label for="pos-mode" style="font-size:13px;font-weight:500;color:var(--text-secondary);font-family:Graphik,Arial,sans-serif;">Posicionamento customizado (por página)</label>
+                        <label for="pos-mode">Posicionamento customizado (por página)</label>
                         <label class="switch">
                             <input type="checkbox" id="pos-mode">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="switch-container" style="margin-top:8px;">
+                        <label for="rotate-landscape">Girar carimbo 90° nas páginas em paisagem</label>
+                        <label class="switch">
+                            <input type="checkbox" id="rotate-landscape">
                             <span class="slider"></span>
                         </label>
                     </div>
@@ -1884,6 +1899,7 @@
             bgZoom: 1.0,
             bgAlign: 'center',
             stampModel: 'padrao',
+            rotateLandscape: false,
             
             // Geometria
             scale: 1.0,
@@ -1916,6 +1932,7 @@
         const scaleRange = document.getElementById('scale-range');
         const scaleValLabel = document.getElementById('scale-val');
         const posModeCheckbox = document.getElementById('pos-mode');
+        const rotateLandscapeCheckbox = document.getElementById('rotate-landscape');
         
         const btnUndo = document.getElementById('btn-undo');
         const btnRedo = document.getElementById('btn-redo');
@@ -2038,6 +2055,13 @@
                 e.currentTarget.classList.add('active');
                 updateBgGeometries();
             });
+        });
+
+        // Adaptação de páginas em paisagem para encadernação pela margem longa.
+        rotateLandscapeCheckbox.addEventListener('change', (e) => {
+            saveToHistory();
+            appState.rotateLandscape = e.target.checked;
+            updateStampGeometries();
         });
 
         // Posicionamento Customizado (Alternador)
@@ -3248,9 +3272,10 @@
                     }
                 } else if (isResizing) {
                     const dx = e.clientX - startX;
-                    const newWidth = Math.max(70, Math.min(210, startWidth + dx));
+                    const newWidth = Math.max(1, startWidth + dx);
                     const modelConf = STAMP_MODELS[appState.stampModel] || STAMP_MODELS.padrao;
-                    const newScale = (newWidth / ratio) / modelConf.width;
+                    const rotation = getStampRotation(pageW, pageH);
+                    const newScale = (newWidth / ratio) / (rotation ? modelConf.height : modelConf.width);
                     const clampedScale = Math.max(0.5, Math.min(1.5, newScale));
 
                     if (appState.positionMode) {
@@ -3298,6 +3323,10 @@
             });
         }
 
+        function getStampRotation(pageWidth, pageHeight) {
+            return appState.rotateLandscape && pageWidth > pageHeight ? 90 : 0;
+        }
+
         // Atualiza tamanho e posições de todos os carimbos nos PDFs exibidos
         function updateStampGeometries() {
             if (appState.queue.length === 0) return;
@@ -3320,6 +3349,10 @@
                     const modelConf = STAMP_MODELS[appState.stampModel] || STAMP_MODELS.padrao;
                     const currentBaseWidth = modelConf.width;
                     const currentBaseHeight = modelConf.height;
+                    const rotation = getStampRotation(page.width, page.height);
+                    wrapper.classList.toggle('landscape-stamp', rotation === 90);
+                    const footprintWidth = rotation ? currentBaseHeight : currentBaseWidth;
+                    const footprintHeight = rotation ? currentBaseWidth : currentBaseHeight;
 
                     if (appState.positionMode && appState.customCoords[file.fileId]?.[page.page_idx]) {
                         const coords = appState.customCoords[file.fileId][page.page_idx];
@@ -3329,22 +3362,35 @@
                     } else if (appState.globalCoords.x0 !== null) {
                         const g = appState.globalCoords;
                         if (g.refWidth && g.refWidth > 0) {
-                            const right_offset = g.refWidth - g.x0;
+                            let right_offset = g.refWidth - g.x0;
+                            if (g.refHeight && g.refHeight > 0) {
+                                const refRotation = getStampRotation(g.refWidth, g.refHeight);
+                                const refStampWidth = (refRotation ? currentBaseHeight : currentBaseWidth) * appState.scale;
+                                right_offset += footprintWidth * appState.scale - refStampWidth;
+                            }
                             x0 = page.width - right_offset;
                         } else {
                             x0 = g.x0;
                         }
                         y0 = g.y0;
                         s = appState.scale;
+                        if (g.refWidth && g.refHeight) {
+                            const refRotation = getStampRotation(g.refWidth, g.refHeight);
+                            const refStampHeight = (refRotation ? currentBaseWidth : currentBaseHeight) * s;
+                            const verticalOffset = refRotation ? g.refHeight - g.y0 - refStampHeight : g.y0;
+                            y0 = rotation ? page.height - verticalOffset - footprintHeight * s : verticalOffset;
+                        }
                     } else {
                         s = appState.scale;
-                        const w_stamp = currentBaseWidth * s;
+                        const w_stamp = footprintWidth * s;
                         x0 = page.width - MARGIN_RIGHT - w_stamp;
-                        y0 = MARGIN_TOP;
+                        y0 = rotation ? page.height - MARGIN_TOP - footprintHeight * s : MARGIN_TOP;
                     }
 
-                    const screenWidth = (currentBaseWidth * s) * ratio;
-                    const screenHeight = (currentBaseHeight * s) * ratio;
+                    x0 = Math.max(0, Math.min(x0, page.width - footprintWidth * s));
+                    y0 = Math.max(0, Math.min(y0, page.height - footprintHeight * s));
+                    const screenWidth = (footprintWidth * s) * ratio;
+                    const screenHeight = (footprintHeight * s) * ratio;
                     const screenLeft = x0 * ratio;
                     const screenTop = y0 * ratio;
 
@@ -3360,6 +3406,11 @@
                         
                         const borderWidthPx = (1.2 * s * ratio) + 'px';
                         stampEl.style.borderWidth = borderWidthPx;
+                        const contentWidth = Math.max(0, (currentBaseWidth - 2.4) * s * ratio);
+                        const contentHeight = Math.max(0, (currentBaseHeight - 2.4) * s * ratio);
+                        textContainer.style.width = contentWidth + 'px';
+                        textContainer.style.height = contentHeight + 'px';
+                        textContainer.style.transform = rotation ? `translateX(${contentHeight}px) rotate(90deg)` : 'none';
                         
                         const row1 = textContainer.querySelector('.stamp-row-1');
                         if (row1) {
@@ -3435,6 +3486,7 @@
         function saveToHistory() {
             const snapshot = {
                 scale: appState.scale,
+                rotateLandscape: appState.rotateLandscape,
                 positionMode: appState.positionMode,
                 globalCoords: { ...appState.globalCoords },
                 customCoords: JSON.parse(JSON.stringify(appState.customCoords))
@@ -3451,6 +3503,7 @@
 
             const currentGeoms = {
                 scale: appState.scale,
+                rotateLandscape: appState.rotateLandscape,
                 positionMode: appState.positionMode,
                 globalCoords: { ...appState.globalCoords },
                 customCoords: JSON.parse(JSON.stringify(appState.customCoords))
@@ -3467,6 +3520,7 @@
 
             const currentGeoms = {
                 scale: appState.scale,
+                rotateLandscape: appState.rotateLandscape,
                 positionMode: appState.positionMode,
                 globalCoords: { ...appState.globalCoords },
                 customCoords: JSON.parse(JSON.stringify(appState.customCoords))
@@ -3480,6 +3534,7 @@
         // Aplica o estado de histórico
         function applyHistoryState(state) {
             appState.scale = state.scale;
+            appState.rotateLandscape = state.rotateLandscape;
             appState.positionMode = state.positionMode;
             appState.globalCoords = state.globalCoords;
             appState.customCoords = state.customCoords;
@@ -3487,6 +3542,7 @@
             scaleRange.value = Math.round(appState.scale * 100);
             scaleValLabel.textContent = scaleRange.value + '%';
             posModeCheckbox.checked = appState.positionMode;
+            rotateLandscapeCheckbox.checked = appState.rotateLandscape;
 
             updateStampGeometries();
             updateHistoryButtons();
@@ -3575,7 +3631,8 @@
                         active_pages: file.activePages,
                         bg_zoom: appState.bgZoom,
                         bg_align: appState.bgAlign,
-                        stamp_model: appState.stampModel
+                        stamp_model: appState.stampModel,
+                        rotate_landscape: appState.rotateLandscape
                     };
 
                     const response = await fetch('/api/stamp', {

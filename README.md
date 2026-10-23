@@ -26,6 +26,7 @@ O design visual do sistema segue o mockup abaixo (salvo no repositório):
     *   Contorno preto fino com 1.2 pt de espessura.
     *   Formato da numeração de folha sem espaços: `Fl.18`.
 *   **Controle Dinâmico de Rotação:** O motor matemático aplica uma matriz de derotação (`derotation_matrix`) para que os carimbos fiquem perfeitamente alinhados no canto superior direito de cada página, mesmo em documentos com orientações mistas (paisagem/retrato) ou páginas rotacionadas.
+*   **Carimbo em Paisagem para Encadernação:** Em **Posicionamento**, abaixo de **Posicionamento customizado (por página)**, ative **Girar carimbo 90° nas páginas em paisagem** para girar o carimbo 90° no sentido horário e posicioná-lo no canto inferior direito das páginas em paisagem, com margem de 20 pt. Páginas em retrato continuam com o carimbo no canto superior direito. O ajuste aparece na prévia e é incorporado aos PDFs salvos, abertos e impressos. Funciona nos três modelos de carimbo, inclusive em PDFs com rotação de página, e permite arrastar, redimensionar e desfazer/refazer. Posicionamentos manuais prevalecem sobre a posição padrão. A opção começa desativada; na API, use `rotate_landscape: true` em `POST /api/stamp`.
 *   **Regra de Volumes e Termos de Abertura/Encerramento:**
     *   Pula automaticamente a inserção do carimbo nas páginas de termos de abertura/encerramento (múltiplos do limite de volume, ex: 200, 400 e múltiplos + 1, ex: 201, 401).
     *   A sequência numérica pula essas páginas de forma inteligente (ex: pág. 199 -> pula 200 e 201 -> pág. 202).
@@ -87,12 +88,12 @@ carimbo-pdf/
 ## 🔖 Versão da Aplicação
 
 A versão oficial fica em `APP_VERSION`, no arquivo `app/version.py`. A interface web,
-a API e o aplicativo desktop usam esse mesmo valor. A versão inicial é `1.0.0`.
+a API e o aplicativo desktop usam esse mesmo valor. A versão atual é `1.1.1`.
 
 * **Usuários:** ao passar o mouse sobre o logo **Carimbo.pdf**, aparece a dica
-  `Versão 1.0.0`, sem acrescentar texto fixo à interface.
+  `Versão 1.1.1`, sem acrescentar texto fixo à interface.
 * **Manutenção:** `GET /api/version` retorna a versão e o commit em execução:
-  `{"version": "1.0.0", "commit": "<SHA completo do commit>"}`. A versão também
+  `{"version": "1.1.1", "commit": "<SHA completo do commit>"}`. A versão também
   aparece nos metadados da API em `/docs`.
 
 O commit é obtido de `APP_COMMIT_SHA`, de `RAILWAY_GIT_COMMIT_SHA` ou do Git local,
