@@ -89,12 +89,12 @@ carimbo-pdf/
 ## 🔖 Versão da Aplicação
 
 A versão oficial fica em `APP_VERSION`, no arquivo `app/version.py`. A interface web,
-a API e o aplicativo desktop usam esse mesmo valor. A versão atual é `1.1.1`.
+a API e o aplicativo desktop usam esse mesmo valor. A versão atual é `1.1.2`.
 
 * **Usuários:** ao passar o mouse sobre o logo **Carimbo.pdf**, aparece a dica
-  `Versão 1.1.1`, sem acrescentar texto fixo à interface.
+  `Versão 1.1.2`, sem acrescentar texto fixo à interface.
 * **Manutenção:** `GET /api/version` retorna a versão e o commit em execução:
-  `{"version": "1.1.1", "commit": "<SHA completo do commit>"}`. A versão também
+  `{"version": "1.1.2", "commit": "<SHA completo do commit>"}`. A versão também
   aparece nos metadados da API em `/docs`.
 
 O commit é obtido de `APP_COMMIT_SHA`, de `RAILWAY_GIT_COMMIT_SHA` ou do Git local,
