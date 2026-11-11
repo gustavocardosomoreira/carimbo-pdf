@@ -1995,7 +1995,11 @@
                 input.addEventListener(evt, () => {
                     readFormInputs();
                     recalculateSequences();
-                    updateAllStampText();
+                    if ([startLeafInput, volumeLimitInput, reserveTermsCheckbox].includes(input)) {
+                        renderGrid();
+                    } else {
+                        updateAllStampText();
+                    }
                 });
             });
         });
@@ -2082,6 +2086,11 @@
             // Redimensionar os wrappers das páginas dinamicamente
             document.querySelectorAll('.page-wrapper').forEach(el => {
                 el.style.width = val + 'px';
+                const aspectRatio = parseFloat(el.getAttribute('data-aspect-ratio'));
+                if (aspectRatio) {
+                    el.style.height = (val * aspectRatio) + 'px';
+                    return;
+                }
                 const pageIdx = parseInt(el.getAttribute('data-page-idx'));
                 const fileIdxAttr = el.getAttribute('data-file-idx');
                 const fileIdx = fileIdxAttr !== null ? parseInt(fileIdxAttr) : appState.activeFileIdx;
@@ -2551,6 +2560,8 @@
             appState.queue.forEach(file => {
                 file.startLeafCalculated = currentLeaf;
                 file.pagesInfo = [];
+                // Os termos são espaços virtuais; pagesInfo mantém os índices do PDF.
+                file.termsBeforePage = {};
 
                 for (let idx = 0; idx < file.totalPages; idx++) {
                     const isActive = file.activePages.includes(idx);
@@ -2564,32 +2575,23 @@
                             is_active: false
                         });
                     } else {
-                        let isTerm = false;
-                        if (appState.reserveTerms && currentLeaf !== null) {
-                            if (currentLeaf > 1 && (currentLeaf % appState.volumeLimit === 0 || currentLeaf % appState.volumeLimit === 1)) {
-                                isTerm = true;
+                        if (appState.reserveTerms && currentLeaf !== null && currentLeaf > 1) {
+                            const remainder = currentLeaf % appState.volumeLimit;
+                            if (remainder === 0 || remainder === 1) {
+                                file.termsBeforePage[idx] = remainder === 0
+                                    ? [currentLeaf, currentLeaf + 1] : [currentLeaf];
+                                currentLeaf += 2 - remainder;
                             }
                         }
 
-                        if (isTerm) {
-                            file.pagesInfo.push({
-                                page_idx: idx,
-                                should_stamp: false,
-                                leaf_number: currentLeaf,
-                                is_term: true,
-                                is_active: true
-                            });
-                            currentLeaf += 1;
-                        } else {
-                            file.pagesInfo.push({
-                                page_idx: idx,
-                                should_stamp: true,
-                                leaf_number: currentLeaf,
-                                is_term: false,
-                                is_active: true
-                            });
-                            if (currentLeaf !== null) currentLeaf += 1;
-                        }
+                        file.pagesInfo.push({
+                            page_idx: idx,
+                            should_stamp: true,
+                            leaf_number: currentLeaf,
+                            is_term: false,
+                            is_active: true
+                        });
+                        if (currentLeaf !== null) currentLeaf += 1;
                     }
                 }
             });
@@ -2778,6 +2780,49 @@
             }
         }
 
+        // Insere os termos apenas na grade, antes da próxima página real.
+        function appendTermPlaceholders(parent, file, page, zoom) {
+            const leaves = file.termsBeforePage?.[page.page_idx] || [];
+            leaves.forEach(leaf => {
+                const isOpening = leaf % appState.volumeLimit === 1;
+                const title = isOpening ? 'Termo de Abertura' : 'Termo de Encerramento';
+                const volume = Math.floor((leaf - 1) / appState.volumeLimit) + 1;
+                const container = document.createElement('div');
+                container.className = 'page-container accent-term';
+                container.id = `term-placeholder-${file.fileId}-${leaf}`;
+
+                const tooltip = document.createElement('div');
+                tooltip.className = 'custom-tooltip';
+                tooltip.textContent = `${title} — Volume ${volume}. Espaço reservado; não incluído no PDF.`;
+                container.appendChild(tooltip);
+
+                const wrapper = document.createElement('div');
+                wrapper.className = 'page-wrapper term-placeholder';
+                wrapper.setAttribute('data-aspect-ratio', page.height / page.width);
+                Object.assign(wrapper.style, {
+                    width: zoom + 'px', height: (page.height * zoom / page.width) + 'px',
+                    display: 'flex', flexDirection: 'column', alignItems: 'center',
+                    justifyContent: 'center', gap: '8px', padding: '12px', textAlign: 'center'
+                });
+                wrapper.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true" style="width:36px;height:36px;fill:var(--warning);margin-bottom:4px;">
+                    <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,20H18A2,2 0 0,0 20,18V8L14,2M13,3.5L18.5,9H13V3.5M6,20V4H12V10H18V20H6Z"/>
+                </svg>`;
+                const label = document.createElement('span');
+                Object.assign(label.style, {fontSize: '12px', fontWeight: '700', color: '#78350F'});
+                label.textContent = title;
+                wrapper.appendChild(label);
+                const badge = document.createElement('span');
+                Object.assign(badge.style, {
+                    fontSize: '10px', fontWeight: '600', color: '#B45309', backgroundColor: '#FEF3C7',
+                    padding: '2px 8px', borderRadius: '9999px', marginTop: '4px'
+                });
+                badge.textContent = `Folha ${leaf} · Volume ${volume}`;
+                wrapper.appendChild(badge);
+                container.appendChild(wrapper);
+                parent.appendChild(container);
+            });
+        }
+
         // Cria o Grid de visualização de páginas
         function renderGrid() {
             if (appState.activeFileIdx === -1) return;
@@ -2859,13 +2904,10 @@
 
                     file.pages.forEach(page => {
                         const info = file.pagesInfo ? file.pagesInfo[page.page_idx] : null;
-                        const isTerm = info && info.is_active && info.is_term;
+                        appendTermPlaceholders(subgridEl, file, page, zoomValNum);
 
                         const container = document.createElement('div');
                         container.className = `page-container${!file.activePages.includes(page.page_idx) ? ' inactive' : ''}`;
-                        if (isTerm) {
-                            container.classList.add('accent-term');
-                        }
                         container.id = `page-container-${file.fileId}-${page.page_idx}`;
 
                         // Ao clicar no card, torna este PDF o ativo
@@ -2903,62 +2945,23 @@
                         const ratio = zoomValNum / page.width;
                         wrapper.style.height = (page.height * ratio) + 'px';
 
-                        if (isTerm) {
-                            // Render Term spacer card inner contents
-                            wrapper.classList.add('term-placeholder');
-                            wrapper.style.display = 'flex';
-                            wrapper.style.flexDirection = 'column';
-                            wrapper.style.alignItems = 'center';
-                            wrapper.style.justifyContent = 'center';
-                            wrapper.style.gap = '8px';
-                            wrapper.style.padding = '12px';
-                            wrapper.style.textAlign = 'center';
-                            
-                            // Folder SVG
-                            const svgHtml = `
-                                <svg viewBox="0 0 24 24" style="width: 36px; height: 36px; fill: var(--warning); margin-bottom: 4px;">
-                                    <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,20H18A2,2 0 0,0 20,18V8L14,2M13,3.5L18.5,9H13V3.5M6,20V4H12V10H18V20H6Z"/>
-                                </svg>
-                            `;
-                            wrapper.innerHTML = svgHtml;
-                            
-                            const labelTitle = document.createElement('span');
-                            labelTitle.style.fontSize = '12px';
-                            labelTitle.style.fontWeight = '700';
-                            labelTitle.style.color = '#78350F';
-                            labelTitle.textContent = 'Termo de Abertura / Encerramento';
-                            wrapper.appendChild(labelTitle);
+                        // Imagem de preview (lazy loaded)
+                        const img = document.createElement('img');
+                        img.className = 'page-img';
+                        img.setAttribute('data-file-id', file.fileId);
+                        img.setAttribute('data-page', page.page_idx);
+                        img.alt = `Página ${page.page_idx + 1}`;
+                        observer.observe(img);
 
-                            const labelBadge = document.createElement('span');
-                            labelBadge.style.fontSize = '10px';
-                            labelBadge.style.fontWeight = '600';
-                            labelBadge.style.color = '#B45309';
-                            labelBadge.style.backgroundColor = '#FEF3C7';
-                            labelBadge.style.padding = '2px 8px';
-                            labelBadge.style.borderRadius = '9999px';
-                            labelBadge.style.marginTop = '4px';
-                            labelBadge.id = `term-badge-text-${file.fileId}-${page.page_idx}`;
-                            labelBadge.textContent = info ? `Pula Folha ${info.leaf_number}` : 'Pula Folha';
-                            wrapper.appendChild(labelBadge);
-                        } else {
-                            // Imagem de preview (lazy loaded)
-                            const img = document.createElement('img');
-                            img.className = 'page-img';
-                            img.setAttribute('data-file-id', file.fileId);
-                            img.setAttribute('data-page', page.page_idx);
-                            img.alt = `Página ${page.page_idx + 1}`;
-                            observer.observe(img);
+                        // Carimbo flutuante overlay
+                        const stamp = document.createElement('div');
+                        stamp.className = 'stamp-overlay';
+                        stamp.id = `stamp-page-${file.fileId}-${page.page_idx}`;
+                        stamp.innerHTML = getStampHTML(file, page, info);
+                        initDragAndDrop(stamp, fileIdx, page.page_idx, page.width, page.height);
 
-                            // Carimbo flutuante overlay
-                            const stamp = document.createElement('div');
-                            stamp.className = 'stamp-overlay';
-                            stamp.id = `stamp-page-${file.fileId}-${page.page_idx}`;
-                            stamp.innerHTML = getStampHTML(file, page, info);
-                            initDragAndDrop(stamp, fileIdx, page.page_idx, page.width, page.height);
-
-                            wrapper.appendChild(img);
-                            wrapper.appendChild(stamp);
-                        }
+                        wrapper.appendChild(img);
+                        wrapper.appendChild(stamp);
 
                         // Botão de ativamento da página
                         const btnToggle = document.createElement('button');
@@ -3048,13 +3051,10 @@
 
                 file.pages.forEach(page => {
                     const info = file.pagesInfo ? file.pagesInfo[page.page_idx] : null;
-                    const isTerm = info && info.is_active && info.is_term;
+                    appendTermPlaceholders(pagesGrid, file, page, zoomValNum);
 
                     const container = document.createElement('div');
                     container.className = `page-container${!file.activePages.includes(page.page_idx) ? ' inactive' : ''}`;
-                    if (isTerm) {
-                        container.classList.add('accent-term');
-                    }
                     container.id = `page-container-${file.fileId}-${page.page_idx}`;
 
                     const currentVol = (info && info.leaf_number !== null) ? Math.floor((info.leaf_number - 1) / appState.volumeLimit) + 1 : 1;
@@ -3082,62 +3082,23 @@
                     const ratio = zoomValNum / page.width;
                     wrapper.style.height = (page.height * ratio) + 'px';
 
-                    if (isTerm) {
-                        // Render Term spacer card inner contents
-                        wrapper.classList.add('term-placeholder');
-                        wrapper.style.display = 'flex';
-                        wrapper.style.flexDirection = 'column';
-                        wrapper.style.alignItems = 'center';
-                        wrapper.style.justifyContent = 'center';
-                        wrapper.style.gap = '8px';
-                        wrapper.style.padding = '12px';
-                        wrapper.style.textAlign = 'center';
-                        
-                        // Folder SVG
-                        const svgHtml = `
-                            <svg viewBox="0 0 24 24" style="width: 36px; height: 36px; fill: var(--warning); margin-bottom: 4px;">
-                                <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,20H18A2,2 0 0,0 20,18V8L14,2M13,3.5L18.5,9H13V3.5M6,20V4H12V10H18V20H6Z"/>
-                            </svg>
-                        `;
-                        wrapper.innerHTML = svgHtml;
-                        
-                        const labelTitle = document.createElement('span');
-                        labelTitle.style.fontSize = '12px';
-                        labelTitle.style.fontWeight = '700';
-                        labelTitle.style.color = '#78350F';
-                        labelTitle.textContent = 'Termo de Abertura / Encerramento';
-                        wrapper.appendChild(labelTitle);
+                    // Imagem de preview (lazy loaded)
+                    const img = document.createElement('img');
+                    img.className = 'page-img';
+                    img.setAttribute('data-file-id', file.fileId);
+                    img.setAttribute('data-page', page.page_idx);
+                    img.alt = `Página ${page.page_idx + 1}`;
+                    observer.observe(img);
 
-                        const labelBadge = document.createElement('span');
-                        labelBadge.style.fontSize = '10px';
-                        labelBadge.style.fontWeight = '600';
-                        labelBadge.style.color = '#B45309';
-                        labelBadge.style.backgroundColor = '#FEF3C7';
-                        labelBadge.style.padding = '2px 8px';
-                        labelBadge.style.borderRadius = '9999px';
-                        labelBadge.style.marginTop = '4px';
-                        labelBadge.id = `term-badge-text-${file.fileId}-${page.page_idx}`;
-                        labelBadge.textContent = info ? `Pula Folha ${info.leaf_number}` : 'Pula Folha';
-                        wrapper.appendChild(labelBadge);
-                    } else {
-                        // Imagem de preview (lazy loaded)
-                        const img = document.createElement('img');
-                        img.className = 'page-img';
-                        img.setAttribute('data-file-id', file.fileId);
-                        img.setAttribute('data-page', page.page_idx);
-                        img.alt = `Página ${page.page_idx + 1}`;
-                        observer.observe(img);
+                    // Carimbo flutuante overlay
+                    const stamp = document.createElement('div');
+                    stamp.className = 'stamp-overlay';
+                    stamp.id = `stamp-page-${file.fileId}-${page.page_idx}`;
+                    stamp.innerHTML = getStampHTML(file, page, info);
+                    initDragAndDrop(stamp, appState.activeFileIdx, page.page_idx, page.width, page.height);
 
-                        // Carimbo flutuante overlay
-                        const stamp = document.createElement('div');
-                        stamp.className = 'stamp-overlay';
-                        stamp.id = `stamp-page-${file.fileId}-${page.page_idx}`;
-                        stamp.innerHTML = getStampHTML(file, page, info);
-                        initDragAndDrop(stamp, appState.activeFileIdx, page.page_idx, page.width, page.height);
-
-                        wrapper.appendChild(img);
-                        wrapper.appendChild(stamp);
-                    }
+                    wrapper.appendChild(img);
+                    wrapper.appendChild(stamp);
 
                     // Botão de ativamento da página
                     const btnToggle = document.createElement('button');

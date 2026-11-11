@@ -28,8 +28,9 @@ O design visual do sistema segue o mockup abaixo (salvo no repositório):
 *   **Controle Dinâmico de Rotação:** O motor matemático aplica uma matriz de derotação (`derotation_matrix`) para que os carimbos fiquem perfeitamente alinhados no canto superior direito de cada página, mesmo em documentos com orientações mistas (paisagem/retrato) ou páginas rotacionadas.
 *   **Carimbo em Paisagem para Encadernação:** Em **Posicionamento**, abaixo de **Posicionamento customizado (por página)**, ative **Girar carimbo 90° nas páginas em paisagem** para girar o carimbo 90° no sentido horário e posicioná-lo no canto inferior direito das páginas em paisagem, com margem de 20 pt. Páginas em retrato continuam com o carimbo no canto superior direito. O ajuste aparece na prévia e é incorporado aos PDFs salvos, abertos e impressos. Funciona nos três modelos de carimbo, inclusive em PDFs com rotação de página, e permite arrastar, redimensionar e desfazer/refazer. Posicionamentos manuais prevalecem sobre a posição padrão. A opção começa desativada; na API, use `rotate_landscape: true` em `POST /api/stamp`.
 *   **Regra de Volumes e Termos de Abertura/Encerramento:**
-    *   Pula automaticamente a inserção do carimbo nas páginas de termos de abertura/encerramento (múltiplos do limite de volume, ex: 200, 400 e múltiplos + 1, ex: 201, 401).
-    *   A sequência numérica pula essas páginas de forma inteligente (ex: pág. 199 -> pula 200 e 201 -> pág. 202).
+    *   Reserva os números de folha dos termos de encerramento/abertura (múltiplos do limite de volume, ex: 200, 400, e múltiplos + 1, ex: 201, 401), sem consumir páginas do PDF.
+    *   Todas as páginas ativas recebem carimbo: seis páginas começando na folha 198 ficam com 198, 199, 202, 203, 204 e 205. Com a opção desativada, a numeração é sequencial, sem saltos.
+    *   Os espaços dos termos aparecem como cartões adicionais apenas na grade, tanto por arquivo quanto no lote completo; eles não são incluídos no PDF exportado.
     *   Avisos visuais na tela são exibidos imediatamente caso a numeração atinja ou exceda limites de quebras de volume.
 *   **Indicador Visual de Quebra de Volume (Pill Expandível):** Exibição de um pequeno ponto/pill interativo no canto superior direito da página onde inicia um novo volume. Ao passar o mouse, ele expande mostrando o volume correspondente e um aviso de tooltip explicativo:
     *   *Verde (Vol X):* Indica que os termos estão ativados e reservados corretamente.
@@ -117,7 +118,13 @@ Reinicie o servidor ou gere um novo executável após alterar a versão.
 ## 🧪 Executando a Suíte de Testes
 Para garantir a integridade dos cálculos matemáticos de escala, pulos de termos e rotas de API, execute o comando:
 ```bash
-python -m pytest
+py -m pytest
+```
+
+Para testar a numeração e os cartões de termos nas duas grades do frontend, use Node.js (sem pacotes adicionais):
+
+```bash
+node --test tests/test_frontend_terms.cjs
 ```
 
 ---

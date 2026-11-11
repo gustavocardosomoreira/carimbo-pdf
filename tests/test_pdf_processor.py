@@ -1,5 +1,6 @@
 import os
 import tempfile
+import re
 import fitz
 import pytest
 from app.core.pdf_processor import (
@@ -106,7 +107,7 @@ def test_landscape_rotation_global_margins_and_custom_position(tmp_path, referen
         assert tuple(custom) == pytest.approx((100, 150, 172, 294.48), abs=0.01)
 
 
-def test_landscape_rotation_keeps_terms_and_inactive_pages_unstamped(tmp_path):
+def test_landscape_rotation_skips_term_numbers_and_keeps_inactive_pages_unstamped(tmp_path):
     source = tmp_path / "landscape.pdf"
     output = tmp_path / "stamped.pdf"
     with fitz.open() as doc:
@@ -117,10 +118,10 @@ def test_landscape_rotation_keeps_terms_and_inactive_pages_unstamped(tmp_path):
         str(source), str(output), "9557/2026", "21/05/2026", 199, 200, True,
         active_pages=[0, 1, 2], rotate_landscape=True,
     )
-    assert [info["leaf_number"] for info in pages_info] == [199, 200, 201, None]
+    assert [info["leaf_number"] for info in pages_info] == [199, 202, 203, None]
     with fitz.open(output) as doc:
-        assert doc[0].get_drawings()
-        assert all(not doc[idx].get_drawings() for idx in (1, 2, 3))
+        assert all(doc[idx].get_drawings() for idx in (0, 1, 2))
+        assert not doc[3].get_drawings()
 
 @pytest.fixture
 def sample_pdf():
@@ -150,20 +151,61 @@ def test_calculate_leaf_sequence_no_reserve():
     assert pages_info[4] == {"page_idx": 4, "should_stamp": True, "leaf_number": 202, "is_term": False, "is_active": True}
 
 def test_calculate_leaf_sequence_with_reserve():
-    # Teste com reserva de termos. Folha 200 e 201 devem ser marcadas como termos e não receber carimbo.
-    total_pages = 5
+    # A reserva pula números de folha, sem consumir páginas reais do PDF.
+    total_pages = 6
     start_leaf = 198
     volume_limit = 200
     pages_info = calculate_leaf_sequence(total_pages, start_leaf, volume_limit, reserve_terms=True)
     
-    assert len(pages_info) == 5
-    assert pages_info[0] == {"page_idx": 0, "should_stamp": True, "leaf_number": 198, "is_term": False, "is_active": True}
-    assert pages_info[1] == {"page_idx": 1, "should_stamp": True, "leaf_number": 199, "is_term": False, "is_active": True}
-    # Folha 200 e 201 são termos
-    assert pages_info[2] == {"page_idx": 2, "should_stamp": False, "leaf_number": 200, "is_term": True, "is_active": True}
-    assert pages_info[3] == {"page_idx": 3, "should_stamp": False, "leaf_number": 201, "is_term": True, "is_active": True}
-    # Folha 202 volta a ser carimbada
-    assert pages_info[4] == {"page_idx": 4, "should_stamp": True, "leaf_number": 202, "is_term": False, "is_active": True}
+    assert len(pages_info) == 6
+    assert [info["leaf_number"] for info in pages_info] == [198, 199, 202, 203, 204, 205]
+    assert all(info["should_stamp"] and not info["is_term"] for info in pages_info)
+    assert [info["page_idx"] for info in pages_info] == list(range(6))
+
+
+@pytest.mark.parametrize("start_leaf,expected", [
+    (1, [1, 2, 3]),
+    (199, [199, 202, 203]),
+    (200, [202, 203, 204]),
+    (201, [202, 203, 204]),
+    (399, [399, 402, 403]),
+    (None, [None, None, None]),
+])
+def test_reserved_number_boundaries(start_leaf, expected):
+    info = calculate_leaf_sequence(3, start_leaf, 200, True)
+    assert [p["leaf_number"] for p in info] == expected
+    assert all(p["should_stamp"] and not p["is_term"] for p in info)
+
+
+def test_reservation_with_inactive_pages_and_multiple_volumes():
+    info = calculate_leaf_sequence(6, 198, 200, True, active_pages=[0, 2, 3, 5])
+    assert [p["leaf_number"] for p in info] == [198, None, 199, 202, None, 203]
+    assert [p["should_stamp"] for p in info] == [True, False, True, True, False, True]
+    info = calculate_leaf_sequence(12, 8, 10, True)
+    assert [p["leaf_number"] for p in info] == [8, 9, 12, 13, 14, 15, 16, 17, 18, 19, 22, 23]
+
+
+@pytest.mark.parametrize("stamp_model", ["padrao", "compacto", "mini"])
+@pytest.mark.parametrize("reserve_terms", [False, True])
+def test_export_keeps_all_original_pages_and_stamps_across_volume(tmp_path, stamp_model, reserve_terms):
+    source, output = tmp_path / "source.pdf", tmp_path / "output.pdf"
+    with fitz.open() as doc:
+        for idx in range(6):
+            doc.new_page().insert_text((50, 150), f"ORIGINAL_PAGE_{idx + 1}")
+        doc.save(source)
+    process_pdf_stamping(
+        str(source), str(output), "123/2026", "11/11/2026", 198, 200,
+        reserve_terms, stamp_model=stamp_model,
+    )
+    expected = [198, 199, 202, 203, 204, 205] if reserve_terms else list(range(198, 204))
+    with fitz.open(output) as doc:
+        assert len(doc) == 6
+        for idx, page in enumerate(doc):
+            text = page.get_text()
+            assert f"ORIGINAL_PAGE_{idx + 1}" in text
+            assert page.get_drawings(), f"Página {idx + 1} sem carimbo"
+            match = re.search(r"Fl\.\s*(\d+)|Folha\s+(\d+)", text)
+            assert match and int(match.group(1) or match.group(2)) == expected[idx]
 
 def test_check_volume_break():
     # Caso 1: Sem quebra de volume (tudo abaixo do limite)
@@ -222,16 +264,8 @@ def test_pdf_stamping_and_rendering():
         
         # Validar as informações geradas
         assert len(pages_info) == 3
-        # Páginas:
-        # Pág 0 (199) -> Carimbada
-        # Pág 1 (200) -> Não carimbada (Termo)
-        # Pág 2 (201) -> Não carimbada (Termo)
-        assert pages_info[0]["should_stamp"] is True
-        assert pages_info[0]["leaf_number"] == 199
-        assert pages_info[1]["should_stamp"] is False
-        assert pages_info[1]["leaf_number"] == 200
-        assert pages_info[2]["should_stamp"] is False
-        assert pages_info[2]["leaf_number"] == 201
+        assert all(info["should_stamp"] for info in pages_info)
+        assert [info["leaf_number"] for info in pages_info] == [199, 202, 203]
         
         # Verificar se o arquivo final existe e possui as páginas carimbadas
         assert os.path.exists(output_path)

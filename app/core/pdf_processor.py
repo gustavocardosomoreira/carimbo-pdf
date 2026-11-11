@@ -57,10 +57,10 @@ def calculate_leaf_sequence(
 ) -> List[Dict[str, Any]]:
     """
     Calcula a sequência de numeração das folhas para cada página do PDF.
-    Se reserve_terms for True, pula a numeração e desenho do carimbo em múltiplos
-    de volume_limit (ex: 200 - Encerramento) e volume_limit + 1 (ex: 201 - Abertura).
+    Se reserve_terms for True, reserva os números de encerramento e abertura
+    (ex: 200 e 201), sem consumir páginas do PDF. Toda página ativa recebe carimbo.
     Se active_pages for fornecido, apenas as páginas contidas nesta lista (0-indexed)
-    recebem numeração de folha e carimbo/termo.
+    recebem numeração de folha e carimbo.
     """
     if active_pages is None:
         active_pages = list(range(total_pages))
@@ -79,30 +79,20 @@ def calculate_leaf_sequence(
                 "is_active": False
             })
         else:
-            is_term = False
-            if reserve_terms and current_leaf is not None:
-                if current_leaf > 1 and (current_leaf % volume_limit == 0 or current_leaf % volume_limit == 1):
-                    is_term = True
-                    
-            if is_term:
-                pages_info.append({
-                    "page_idx": idx,
-                    "should_stamp": False,
-                    "leaf_number": current_leaf,
-                    "is_term": True,
-                    "is_active": True
-                })
+            if reserve_terms and current_leaf is not None and current_leaf > 1:
+                remainder = current_leaf % volume_limit
+                if remainder in (0, 1):
+                    current_leaf += 2 - remainder
+
+            pages_info.append({
+                "page_idx": idx,
+                "should_stamp": True,
+                "leaf_number": current_leaf,
+                "is_term": False,
+                "is_active": True
+            })
+            if current_leaf is not None:
                 current_leaf += 1
-            else:
-                pages_info.append({
-                    "page_idx": idx,
-                    "should_stamp": True,
-                    "leaf_number": current_leaf,
-                    "is_term": False,
-                    "is_active": True
-                })
-                if current_leaf is not None:
-                    current_leaf += 1
                 
     return pages_info
 
