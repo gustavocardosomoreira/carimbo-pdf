@@ -92,7 +92,7 @@ A versão oficial fica em `APP_VERSION`, no arquivo `app/version.py`. A interfac
 a API e o aplicativo desktop usam esse mesmo valor. A versão atual é `1.1.2`.
 
 * **Usuários:** ao passar o mouse sobre o logo **Carimbo.pdf**, aparece a dica
-  `Versão 1.1.2`, sem acrescentar texto fixo à interface.
+  `Versão 1.1.2 — Desenvolvido por Gustavo Cardoso Moreira`, sem acrescentar texto fixo à interface.
 * **Manutenção:** `GET /api/version` retorna a versão e o commit em execução:
   `{"version": "1.1.2", "commit": "<SHA completo do commit>"}`. A versão também
   aparece nos metadados da API em `/docs`.
