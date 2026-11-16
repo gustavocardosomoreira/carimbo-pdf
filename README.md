@@ -27,6 +27,7 @@ O design visual do sistema segue o mockup abaixo (salvo no repositório):
     *   Formato da numeração de folha sem espaços: `Fl.18`.
 *   **Controle Dinâmico de Rotação:** O motor matemático aplica uma matriz de derotação (`derotation_matrix`) para que os carimbos fiquem perfeitamente alinhados no canto superior direito de cada página, mesmo em documentos com orientações mistas (paisagem/retrato) ou páginas rotacionadas.
 *   **Carimbo em Paisagem para Encadernação:** Em **Posicionamento**, abaixo de **Posicionamento customizado (por página)**, ative **Girar carimbo 90° nas páginas em paisagem** para girar o carimbo 90° no sentido horário e posicioná-lo no canto inferior direito das páginas em paisagem, com margem de 20 pt. Páginas em retrato continuam com o carimbo no canto superior direito. O ajuste aparece na prévia e é incorporado aos PDFs salvos, abertos e impressos. Funciona nos três modelos de carimbo, inclusive em PDFs com rotação de página, e permite arrastar, redimensionar e desfazer/refazer. Posicionamentos manuais prevalecem sobre a posição padrão. A opção começa desativada; na API, use `rotate_landscape: true` em `POST /api/stamp`.
+*   **Posicionamento global por orientação:** Arrastar o carimbo em uma página retrato atualiza somente páginas retrato; páginas paisagem mantêm sua própria posição, e vice-versa. O ajuste vale para todo o lote, considera a orientação visual das páginas rotacionadas e é preservado ao exportar, desfazer e refazer. O modo customizado continua ajustando cada página individualmente. Na API, `orientation_coords` aceita as chaves `portrait` e `landscape`, com os mesmos campos de `global_coords`; coordenadas customizadas por página têm prioridade. O campo `global_coords` continua disponível para clientes anteriores e como padrão para orientações sem ajuste.
 *   **Regra de Volumes e Termos de Abertura/Encerramento:**
     *   Reserva os números de folha dos termos de encerramento/abertura (múltiplos do limite de volume, ex: 200, 400, e múltiplos + 1, ex: 201, 401), sem consumir páginas do PDF.
     *   Todas as páginas ativas recebem carimbo: seis páginas começando na folha 198 ficam com 198, 199, 202, 203, 204 e 205. Com a opção desativada, a numeração é sequencial, sem saltos.
@@ -121,10 +122,10 @@ Para garantir a integridade dos cálculos matemáticos de escala, pulos de termo
 py -m pytest
 ```
 
-Para testar a numeração e os cartões de termos nas duas grades do frontend, use Node.js (sem pacotes adicionais):
+Para testar a numeração, os cartões de termos e o posicionamento independente por orientação no frontend, use Node.js (sem pacotes adicionais):
 
 ```bash
-node --test tests/test_frontend_terms.cjs
+node --test tests/test_frontend_terms.cjs tests/test_frontend_positions.cjs
 ```
 
 ---

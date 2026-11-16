@@ -1904,7 +1904,7 @@
             // Geometria
             scale: 1.0,
             positionMode: false, // false = Global, true = Customizado por página
-            globalCoords: { x0: null, y0: null, refWidth: null, refHeight: null },
+            globalCoords: { portrait: null, landscape: null }, // Posição global independente por orientação
             customCoords: {} // Mapeamento de fileId: { page_idx: {x0, y0, scale} }
         };
 
@@ -2320,7 +2320,7 @@
         function resetToEmptyState() {
             appState.queue = [];
             appState.activeFileIdx = -1;
-            appState.globalCoords = { x0: null, y0: null, refWidth: null, refHeight: null };
+            appState.globalCoords = { portrait: null, landscape: null };
             appState.customCoords = {};
             
             documentTitle.textContent = "Nenhum documento carregado";
@@ -3228,7 +3228,9 @@
                             appState.customCoords[file.fileId][pageIdx].y0 = y0_pdf;
                         }
                     } else {
-                        appState.globalCoords = { x0: x0_pdf, y0: y0_pdf, refWidth: pageW, refHeight: pageH };
+                        appState.globalCoords[getPageOrientation(pageW, pageH)] = {
+                            x0: x0_pdf, y0: y0_pdf, refWidth: pageW, refHeight: pageH
+                        };
                         updateStampGeometries();
                     }
                 } else if (isResizing) {
@@ -3284,6 +3286,10 @@
             });
         }
 
+        function getPageOrientation(pageWidth, pageHeight) {
+            return pageWidth > pageHeight ? 'landscape' : 'portrait';
+        }
+
         function getStampRotation(pageWidth, pageHeight) {
             return appState.rotateLandscape && pageWidth > pageHeight ? 90 : 0;
         }
@@ -3314,14 +3320,14 @@
                     wrapper.classList.toggle('landscape-stamp', rotation === 90);
                     const footprintWidth = rotation ? currentBaseHeight : currentBaseWidth;
                     const footprintHeight = rotation ? currentBaseWidth : currentBaseHeight;
+                    const g = appState.globalCoords[getPageOrientation(page.width, page.height)];
 
                     if (appState.positionMode && appState.customCoords[file.fileId]?.[page.page_idx]) {
                         const coords = appState.customCoords[file.fileId][page.page_idx];
                         x0 = coords.x0;
                         y0 = coords.y0;
                         s = coords.scale;
-                    } else if (appState.globalCoords.x0 !== null) {
-                        const g = appState.globalCoords;
+                    } else if (g) {
                         if (g.refWidth && g.refWidth > 0) {
                             let right_offset = g.refWidth - g.x0;
                             if (g.refHeight && g.refHeight > 0) {
@@ -3449,7 +3455,7 @@
                 scale: appState.scale,
                 rotateLandscape: appState.rotateLandscape,
                 positionMode: appState.positionMode,
-                globalCoords: { ...appState.globalCoords },
+                globalCoords: JSON.parse(JSON.stringify(appState.globalCoords)),
                 customCoords: JSON.parse(JSON.stringify(appState.customCoords))
             };
 
@@ -3466,7 +3472,7 @@
                 scale: appState.scale,
                 rotateLandscape: appState.rotateLandscape,
                 positionMode: appState.positionMode,
-                globalCoords: { ...appState.globalCoords },
+                globalCoords: JSON.parse(JSON.stringify(appState.globalCoords)),
                 customCoords: JSON.parse(JSON.stringify(appState.customCoords))
             };
             redoStack.push(currentGeoms);
@@ -3483,7 +3489,7 @@
                 scale: appState.scale,
                 rotateLandscape: appState.rotateLandscape,
                 positionMode: appState.positionMode,
-                globalCoords: { ...appState.globalCoords },
+                globalCoords: JSON.parse(JSON.stringify(appState.globalCoords)),
                 customCoords: JSON.parse(JSON.stringify(appState.customCoords))
             };
             undoStack.push(currentGeoms);
@@ -3561,12 +3567,17 @@
                     const file = filesToProcess[i];
 
                     const global_coords = {
-                        x0: appState.globalCoords.x0,
-                        y0: appState.globalCoords.y0,
-                        scale: appState.scale,
-                        ref_width: appState.globalCoords.refWidth,
-                        ref_height: appState.globalCoords.refHeight
+                        scale: appState.scale
                     };
+                    const orientation_coords = {};
+                    Object.entries(appState.globalCoords).forEach(([orientation, coords]) => {
+                        if (coords) {
+                            orientation_coords[orientation] = {
+                                x0: coords.x0, y0: coords.y0, scale: appState.scale,
+                                ref_width: coords.refWidth, ref_height: coords.refHeight
+                            };
+                        }
+                    });
 
                     let custom_coords = null;
                     if (appState.positionMode && appState.customCoords[file.fileId] && Object.keys(appState.customCoords[file.fileId]).length > 0) {
@@ -3588,6 +3599,7 @@
                         volume_limit: appState.volumeLimit,
                         reserve_terms: appState.reserveTerms,
                         global_coords: global_coords,
+                        orientation_coords: orientation_coords,
                         custom_coords: custom_coords,
                         active_pages: file.activePages,
                         bg_zoom: appState.bgZoom,

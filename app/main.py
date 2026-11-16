@@ -5,7 +5,7 @@ import time
 import asyncio
 import gc
 from contextlib import asynccontextmanager
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Literal
 
 from fastapi import FastAPI, UploadFile, File, HTTPException, Request, Form, BackgroundTasks
 from fastapi.responses import HTMLResponse, FileResponse, Response
@@ -125,6 +125,7 @@ class StampRequest(BaseModel):
     volume_limit: int
     reserve_terms: bool
     global_coords: Optional[StampCoords] = None
+    orientation_coords: Optional[Dict[Literal["portrait", "landscape"], StampCoords]] = None
     custom_coords: Optional[Dict[str, StampCoords]] = None
     active_pages: Optional[List[int]] = None
     bg_zoom: Optional[float] = 1.0
@@ -277,6 +278,10 @@ async def stamp_pdf_route(request: StampRequest):
     if request.global_coords:
         global_coords_dict = request.global_coords.model_dump()
 
+    orientation_coords_dict = None
+    if request.orientation_coords is not None:
+        orientation_coords_dict = {key: coords.model_dump() for key, coords in request.orientation_coords.items()}
+
     custom_coords_dict = None
     if request.custom_coords:
         custom_coords_dict = {k: v.model_dump() for k, v in request.custom_coords.items()}
@@ -297,7 +302,8 @@ async def stamp_pdf_route(request: StampRequest):
             bg_zoom=request.bg_zoom,
             bg_align=request.bg_align,
             stamp_model=request.stamp_model,
-            rotate_landscape=request.rotate_landscape
+            rotate_landscape=request.rotate_landscape,
+            orientation_coords=orientation_coords_dict
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro no processamento do carimbo: {str(e)}")

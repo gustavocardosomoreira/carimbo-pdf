@@ -326,7 +326,8 @@ def process_pdf_stamping(
     bg_zoom: float = 1.0,
     bg_align: str = "center",
     stamp_model: str = "padrao",
-    rotate_landscape: bool = False
+    rotate_landscape: bool = False,
+    orientation_coords: Dict[str, Dict[str, Any]] = None
 ) -> Tuple[List[Dict[str, Any]], bool, str]:
     """
     Abre o PDF, calcula a sequência e estampa cada página de acordo com os parâmetros e coordenadas.
@@ -388,21 +389,25 @@ def process_pdf_stamping(
             scale = 1.0
             x0 = None
             y0 = None
+
+            # A orientação visual já considera a rotação da página no PDF.
+            orientation = "landscape" if page_width > page_height else "portrait"
+            page_global_coords = (orientation_coords or {}).get(orientation, global_coords)
             
             if custom_coords and str(idx) in custom_coords:
                 c = custom_coords[str(idx)]
                 x0 = c.get("x0")
                 y0 = c.get("y0")
                 scale = c.get("scale", 1.0)
-            elif global_coords:
-                x0 = global_coords.get("x0")
-                y0 = global_coords.get("y0")
-                scale = global_coords.get("scale", 1.0)
-                ref_width = global_coords.get("ref_width")
+            elif page_global_coords:
+                x0 = page_global_coords.get("x0")
+                y0 = page_global_coords.get("y0")
+                scale = page_global_coords.get("scale", 1.0)
+                ref_width = page_global_coords.get("ref_width")
                 if x0 is not None and y0 is not None:
                     if ref_width is not None and ref_width > 0:
                         right_offset = ref_width - x0
-                        ref_height = global_coords.get("ref_height")
+                        ref_height = page_global_coords.get("ref_height")
                         if ref_height is not None and ref_height > 0:
                             ref_rotation = get_stamp_rotation(rotate_landscape, ref_width, ref_height)
                             ref_stamp_width = model_conf["H" if ref_rotation else "W"] * scale
